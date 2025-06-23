@@ -16,7 +16,7 @@ def estrai_dati_da_pdf(file):
 
     # Regex migliorate e flessibili
     numero_fattura = re.search(r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE)
-    data_chiusura = re.search(r'Documento\s+di\s+chiusura\s+del\s*:?[\s\n]*([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
+    data_chiusura = re.search(r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
     totale_bolletta = re.search(r'Totale\s+(?:bolletta|da\s+pagare).*?:?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE)
 
     return {

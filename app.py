@@ -10,6 +10,19 @@ MESI_MAP = {
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12
 }
 
+# Elenco di società conosciute
+SOCIETA_CONOSCIUTE = [
+    "AGSM AIM ENERGIA",
+    "A2A",
+    "ACQUE SPA",
+    "AQUEDOTTO DEL FIORA",
+    "ASA",
+    "FIRENZE ACQUE",
+    "GEAL",
+    "GAIA SPA",
+    "PUBLIACQUA SPA"
+]
+
 def estrai_testo_da_pdf(file) -> str:
     """Estrae il testo da un file PDF."""
     try:
@@ -20,9 +33,26 @@ def estrai_testo_da_pdf(file) -> str:
         return ""
 
 def estrai_societa(testo: str) -> str:
-    """Estrae la società dal testo."""
-    match = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
-    return match.group(0).upper() if match else "N/D"
+    """Estrae la società dal testo utilizzando tecniche avanzate."""
+    # Cerca società conosciute nel testo
+    for societa in SOCIETA_CONOSCIUTE:
+        if societa.lower() in testo.lower():
+            return societa
+
+    # Utilizza espressioni regolari per trovare pattern comuni
+    patterns = [
+        r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|S\.?P\.?A\.?|SRL|GREEN|COMM|ACQUE))\b',
+        r'\b([A-Z]{2,}\s*(?:ENERGIA|POWER|LIGHT|GAS|ACQUA))\b',
+        r'\b(AGSM|A2A|ACQUE|AQUEDOTTO|ASA|FIRENZE|GEAL|GAIA|PUBLIACQUA)\b'
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, testo, re.IGNORECASE)
+        if match:
+            return match.group(0).upper()
+
+    # Se non trova nulla, restituisce "N/D"
+    return "N/D"
 
 def estrai_periodo(testo: str) -> str:
     """Estrae il periodo di riferimento dal testo."""
@@ -147,4 +177,4 @@ if file_pdf_list:
 
 # Footer semplice
 st.markdown("---")
-st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>Powered by ChatGPT</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>BY MAR. BASILE VINCENZO</p>", unsafe_allow_html=True)

@@ -173,8 +173,9 @@ def estrai_numero_fattura(testo: str) -> str:
         patterns = [
             r'(?:numero\s*fattura|n°\s*fattura|fattura\s*n\.?)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'(?:rif\.|riferimento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'[Ff]attura\s+(?:elektronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
-            r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)', # Pattern specifico richiesto
+            r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'\b\d{2,4}[\/\-]\d{3,8}\b',
             r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
@@ -188,7 +189,6 @@ def estrai_numero_fattura(testo: str) -> str:
     except Exception as e:
         logger.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")
     return "N/D"
-
 
 def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
     """Estrae il totale e la valuta con più pattern."""
@@ -364,16 +364,31 @@ def main():
     st.markdown("""
     **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
     """)
+
+    # Aggiungi CSS personalizzato per allargare la visualizzazione
+    st.markdown("""
+    <style>
+    div[data-baseweb="base-input"] {
+        width: 100%;
+    }
+    div[data-testid="stDataFrame"] {
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.sidebar:
         st.header("Impostazioni")
         mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
         raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
+
     file_pdf_list = st.file_uploader(
         "Seleziona i file PDF delle bollette",
         type=["pdf"],
         accept_multiple_files=True,
         help="Puoi selezionare più file contemporaneamente"
     )
+
     if file_pdf_list:
         risultati = []
         progress_bar = st.progress(0)
@@ -409,13 +424,16 @@ def main():
                     st.warning("Nessuna società riconosciuta nei documenti")
             else:
                 risultati_filtrati = risultati
+
             st.dataframe(
                 pd.DataFrame(risultati_filtrati),
                 use_container_width=True,
                 hide_index=True
             )
+
             if mostra_grafici and risultati_filtrati:
                 mostra_grafico_consumi(risultati_filtrati)
+
             st.subheader("📤 Esporta Dati")
             col1, col2 = st.columns(2)
             with col1:
@@ -440,6 +458,7 @@ def main():
                     )
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
+
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; font-size: 14px; color: gray;">

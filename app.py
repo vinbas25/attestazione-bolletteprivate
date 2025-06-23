@@ -195,10 +195,18 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+import re
+import logging
+
+# Configurazione del logger
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
+
 def estrai_indirizzo(testo: str) -> str:
     """
     Tenta di estrarre l'indirizzo del cliente da un testo utilizzando regex.
     Versione migliorata per gestire specificamente la bolletta GAIA S.p.A.
+    Esclude esplicitamente i formati AGSM AIM.
     
     Args:
         testo: Stringa contenente il testo da analizzare
@@ -207,33 +215,40 @@ def estrai_indirizzo(testo: str) -> str:
         Stringa con l'indirizzo estratto o "N/D" se non trovato
     """
     try:
-        # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
+        # Escludiamo esplicitamente i contenuti AGSM AIM
+        if "AGSM" in testo or "AIM" in testo:
+            return "N/D"
+        
+        # Pattern specifico per GAIA (dove l'indirizzo è dopo "INTESTAZIONE")
         pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
+        # Altri pattern generici (escludiamo match che potrebbero riferirsi ad AGSM AIM)
         patterns = [
             pattern_bolletta_gaia,
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?((?:VIA|CORSO)\s.*?\d{5}\s\w{2})',
+            r'(?<!AGSM)(?<!AIM)(Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)[^\n\d]+?\d{1,5}(?:\s*[A-Za-z]?)?))\b',
+            r'(?<!AGSM)(?<!AIM)(Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)[^\n\d]+?\d{1,5}(?:\s*[A-Za-z]?)?))\b',
+            r'(?<!AGSM)(?<!AIM)(Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)[^\n\d]+?\d{1,5}(?:\s*[A-Za-z]?)?))\b',
+            r'(?<!AGSM)(?<!AIM)(Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)[^\n\d]+?\d{1,5}(?:\s*[A-Za-z]?)?))\b',
+            r'(?<!AGSM)(?<!AIM)(Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)[^\n\d]+?\d{1,5}(?:\s*[A-Za-z]?)?))\b',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
                 if pattern == pattern_bolletta_gaia:
-                    # Per la bolletta GAIA, uniamo le due righe dell'indirizzo
+                    # Per GAIA, uniamo le due righe dell'indirizzo
                     indirizzo = f"{match.group(1).strip()} {match.group(2).strip()}"
                 else:
-                    indirizzo = match.group(1).strip()
+                    # Per altri pattern, prendiamo il gruppo più pertinente
+                    indirizzo = match.group(1).strip() if match.lastindex >= 1 else match.group(0).strip()
                 
-                # Pulizia aggiuntiva dell'indirizzo
-                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)  # Rimuove punteggiatura all'inizio/fine
-                indirizzo = re.sub(r'\s+', ' ', indirizzo)  # Sostituisce multipli spazi con uno solo
-                return indirizzo
+                # Pulizia aggiuntiva
+                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
+                indirizzo = re.sub(r'\s+', ' ', indirizzo)
+                
+                # Verifica finale che non sia un falso positivo
+                if "AGSM" not in indirizzo and "AIM" not in indirizzo:
+                    return indirizzo
                 
         return "N/D"
         
@@ -244,14 +259,21 @@ def estrai_indirizzo(testo: str) -> str:
 
 # Test con il contenuto della bolletta fornita
 if __name__ == "__main__":
-    testo_bolletta = """
+    # Test GAIA (dovrebbe funzionare)
+    testo_gaia = """
     INTESTAZIONE
     PZA G.MENCONI 6
     54033 MARINA DI CARRARA MS
     """
+    print(estrai_indirizzo(testo_gaia))  # Output: "PZA G.MENCONI 6 54033 MARINA DI CARRARA MS"
     
-    indirizzo = estrai_indirizzo(testo_bolletta)
-    print(f"Indirizzo estratto: {indirizzo}")  # Output atteso: "PZA G.MENCONI 6"
+    # Test AGSM (dovrebbe restituire N/D)
+    testo_agsm = """
+    AGSM AIM
+    Via Verona 123
+    37100 Verona VR
+    """
+    print(estrai_indirizzo(testo_agsm))  # Output: "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""

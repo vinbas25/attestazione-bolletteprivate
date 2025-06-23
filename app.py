@@ -548,20 +548,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-     if len(df) == 0:
-            st.warning("Nessun dato valido da esportare.")
-            return None
-
-        # Riordina le colonne se esistono nel DataFrame
-        colonne_presenti = [col for col in colonne_ordinate if col in df.columns]
-        df = df[colonne_presenti]
-
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Dati Bollette')
-            writer.save()
-        output.seek(0)
-        return output
-    except Exception as e:
-        st.error(f"Errore durante la creazione del file Excel: {str(e)}")
-        return None

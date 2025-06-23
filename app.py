@@ -251,19 +251,36 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
 def estrai_consumi(testo: str) -> str:
-    """Estrae i consumi con pattern completi e adattati alle bollette fornite."""
+    """Estrae i consumi fatturati da testo OCR o PDF, gestendo vari formati e fallback."""
     try:
-        # Pattern principali basati sulle bollette analizzate
+        # Blocchi prioritari basati su intestazioni note (come RIEPILOGO CONSUMI FATTURATI)
+        testo_upper = testo.upper()
+        idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+        if idx != -1:
+            snippet = testo_upper[idx:idx+600]
+
+            match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+            if not match:
+                match = re.search(r'TOTALE\s+QUANTITÀ[:\-]?\s*([\d\.,]+)', snippet)
+
+            if match:
+                try:
+                    valore = float(match.group(1).replace('.', '').replace(',', '.'))
+                    return f"{valore:.2f} Smc"
+                except:
+                    pass  # Continua con i pattern generali
+
+        # Pattern generali e multi-bolletta
         patterns = [
-            # Pattern specifico per bollette con valore dettagliato in Smc
             r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
             r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
-
-            # Pattern specifico per bollette GAIA
             r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-
-            # Pattern generali
             r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:consumo\s*medio\s*annuo)\s*\d{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
@@ -284,26 +301,26 @@ def estrai_consumi(testo: str) -> str:
                     valore_normalizzato = valore_raw.replace('.', '').replace(',', '.')
                     consumo = float(valore_normalizzato)
 
-                    # Determinazione automatica dell'unità di misura
                     if len(match.groups()) > 1 and match.group(2):
                         unita = match.group(2).lower()
                     else:
-                        # Inferenza basata sul pattern
                         if "kwh" in pattern.lower():
                             unita = "kWh"
                         elif "energia" in pattern.lower():
                             unita = "kWh"
                         elif "litri" in pattern.lower() or "l" in pattern.lower():
                             unita = "litri"
+                        elif "smc" in pattern.lower():
+                            unita = "Smc"
                         else:
-                            unita = "mc"  # Default: metri cubi
+                            unita = "mc"
 
                     return f"{consumo:.2f} {unita}"
-                except (ValueError, IndexError) as e:
+                except (ValueError, IndexError):
                     logger.debug(f"Errore nel processare il match: {match.group() if match else 'N/A'}")
                     continue
 
-        # Casi speciali fallback
+        # Fallback semplice
         fallback = re.search(r'consumo\s+fatturato\s+(\d+)\s*mc', testo, re.IGNORECASE)
         if fallback:
             return f"{float(fallback.group(1)):.2f} mc"

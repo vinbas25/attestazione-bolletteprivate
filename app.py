@@ -291,29 +291,23 @@ def estrai_consumi(testo: str) -> str:
 
         # Pattern generali e multi-bolletta
         patterns = [
-    # **Pattern specifici per consumi fatturati** (massima priorità)
-    r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
-    r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    
-    # **Pattern per gas/energia fatturati**
-    r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
-    
-    # **Pattern per acqua fatturata**
-    r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
-    
-    # **Altri pattern generici (minore priorità)**
-    r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
-    r'(?:consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:consumo\s*medio\s*annuo)\s*\d{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
-    r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
-    r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-    r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$',
-    r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
-]
+            r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
+            r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
+            r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:consumo\s*medio\s*annuo)\s*\d{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
+            r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
+            r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
+            r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
+            r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
+            r'Consumo\s*\n([\d,]+)\s*mc',
+        ]
 
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)

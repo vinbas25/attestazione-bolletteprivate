@@ -169,20 +169,35 @@ def estrai_pod_pdr(testo: str) -> str:
     return "N/D"
 
 def estrai_indirizzo(testo: str) -> str:
-    """Tenta di estrarre l'indirizzo del cliente."""
+    """
+    Tenta di estrarre l'indirizzo del cliente da un testo utilizzando regex.
+    
+    Args:
+        testo: Stringa contenente il testo da analizzare
+        
+    Returns:
+        Stringa con l'indirizzo estratto o "N/D" se non trovato
+    """
     try:
         patterns = [
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'
         ]
+        
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match:
-                return match.group(1).strip()
+                indirizzo = match.group(1).strip()
+                # Pulizia aggiuntiva dell'indirizzo
+                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)  # Rimuove punteggiatura all'inizio/fine
+                return indirizzo
+                
         return "N/D"
+        
     except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
+        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}", exc_info=True)
         return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:

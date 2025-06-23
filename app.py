@@ -150,7 +150,8 @@ def estrai_pod_pdr(testo: str) -> str:
             r'POD\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Punto\s*di\s*Prelievo\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Codice\s*POD\s*[:\-]?\s*([A-Z0-9]{14,16})',
-            r'(?:matricola\s*contatore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9]{8,12})(?:\s|$)'
+            r'(?:matricola\s*contatore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9]{8,12})(?:\s|$)',
+            r'(?:matricola\s*contatore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9\-]{8,12})(?:\s|$)',
         ]
         for pattern in pod_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)

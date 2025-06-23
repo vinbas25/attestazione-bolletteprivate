@@ -25,9 +25,10 @@ SOCIETA_CONOSCIUTE = {
     "ACQUE SPA": r"ACQUE\s*SPA",
     "AQUEDOTTO DEL FIORA": r"AQUEDOTTO\s*DEL\s*FIORA",
     "ASA LIVORNO": r"ASA\s*LIVORNO",
+    "ENEL ENERGIA": r"ENEL\s*ENERGIA",
+    "ENI GAS E LUCE": r"ENI\s*GAS\s*E\s*LUCE",
     "GAIA SPA": r"GAIA\s*SPA",
     "PUBLIACQUA": r"PUBLIACQUA",
-    "SORGENIA": r"SORGENIA",
     "EDISON ENERGIA": r"EDISON\s*ENERGIA"
 }
 
@@ -70,6 +71,7 @@ def estrai_periodo(testo: str) -> str:
         patterns = [
             r'dal\s+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s+al\s+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'periodo\s+di\s+riferimento\s*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*-\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
+            r'periodo di riferimento\s*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*-\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'rif\.\s*periodo\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*al\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})'
         ]
         for pattern in patterns:
@@ -212,7 +214,7 @@ def estrai_consumi(testo: str) -> str:
     """Estrae i consumi con pattern più completi."""
     try:
         patterns = [
-            r'(?:Totale\s*consumo\s*fatturato|RIEPILOGO\s*CONSUMI\s*FATTURATI|consumo\s*periodo)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
+            r'(?:Totale\s*consumo\s*fatturato|RIEPILOGO\s*CONSUMI\s*FATTURATI|consumi fatturati|totale consumi fatturati|consumo\s*periodo)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
             r'(?:consumo\s*fatturato\s*per\s*il\s*periodo\s*di\s*riferimento)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
             r'(?:energia\s*(?:attiva|fatturata)\s*complessiva)\s*[:\-]?\s*([\d\.,]+)\s*(kWh)?',
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)?',

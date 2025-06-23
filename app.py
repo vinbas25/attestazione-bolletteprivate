@@ -243,6 +243,19 @@ def estrai_indirizzo(testo: str) -> str:
             r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
+        # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
+        pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
+        
+        # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
+        patterns = [
+            pattern_bolletta_gaia,
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?((?:VIA|CORSO)\s.*?\d{5}\s\w{2})',
+        ]
         
         # Prova prima il pattern specifico per GAIA
         match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
@@ -265,38 +278,6 @@ def estrai_indirizzo(testo: str) -> str:
                 # Pulizia aggiuntiva dell'indirizzo
                 indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
                 indirizzo = re.sub(r'\s+', ' ', indirizzo)
-                return indirizzo
-                
-        return "N/D"
-
-
-    try:
-        # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
-        pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
-        
-        # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
-        patterns = [
-            pattern_bolletta_gaia,
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?((?:VIA|CORSO)\s.*?\d{5}\s\w{2})',
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
-            if match:
-                if pattern == pattern_bolletta_gaia:
-                    # Per la bolletta GAIA, uniamo le due righe dell'indirizzo
-                    indirizzo = f"{match.group(1).strip()} {match.group(2).strip()}"
-                else:
-                    indirizzo = match.group(1).strip()
-                
-                # Pulizia aggiuntiva dell'indirizzo
-                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)  # Rimuove punteggiatura all'inizio/fine
-                indirizzo = re.sub(r'\s+', ' ', indirizzo)  # Sostituisce multipli spazi con uno solo
                 return indirizzo
                 
         return "N/D"

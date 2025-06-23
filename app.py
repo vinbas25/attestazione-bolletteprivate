@@ -213,8 +213,6 @@ def estrai_indirizzo(testo: str) -> str:
         # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
         patterns = [
             pattern_bolletta_gaia,
-            r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA\s(.*?\d{5}\s\w{2})',
-            r'DATI FORNITURA.*?C\.F\.\s+\d+\s+([^\n]+)\s+(\d{5}\s+[A-Z]{2})',
             r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',

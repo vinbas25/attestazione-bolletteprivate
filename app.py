@@ -2,31 +2,32 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 
-def estrai_consumo_fatturato(testo):
+def estrai_consumo_da_riquadro(testo):
+    pattern_riquadro = re.compile(r'riepilogo\s+consumi\s+fatturati', re.IGNORECASE)
     lines = testo.split('\n')
-    consumi_valori = []
 
-    pattern = re.compile(r'consumo\s+fatturato', re.IGNORECASE)
-    pattern_plurale = re.compile(r'consumi\s+fatturati', re.IGNORECASE)
+    consumi_valori = []
+    start_idx = None
 
     for i, line in enumerate(lines):
-        if pattern.search(line) or pattern_plurale.search(line):
-            numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', line)
-            for num in numeri:
-                try:
-                    valore = float(num.replace('.', '').replace(',', '.'))
-                    consumi_valori.append(valore)
-                except:
-                    pass
-            if not numeri:
-                for j in range(i+1, min(i+4, len(lines))):
-                    numeri_succ = re.findall(r'[\d\.]+,\d+|[\d\.]+', lines[j])
-                    for num in numeri_succ:
-                        try:
-                            valore = float(num.replace('.', '').replace(',', '.'))
-                            consumi_valori.append(valore)
-                        except:
-                            pass
+        if pattern_riquadro.search(line):
+            start_idx = i
+            break
+
+    if start_idx is None:
+        return "N/D"
+
+    blocco = lines[start_idx+1:start_idx+11]
+
+    for riga in blocco:
+        numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', riga)
+        for num in numeri:
+            try:
+                valore = float(num.replace('.', '').replace(',', '.'))
+                consumi_valori.append(valore)
+            except:
+                pass
+
     return round(sum(consumi_valori), 2) if consumi_valori else "N/D"
 
 def estrai_dati_da_pdf(file):
@@ -53,7 +54,7 @@ def estrai_dati_da_pdf(file):
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
-    totale_consumi = estrai_consumo_fatturato(testo)
+    totale_consumi = estrai_consumo_da_riquadro(testo)
 
     return {
         "Società": nome_societa,

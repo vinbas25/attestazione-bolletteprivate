@@ -250,23 +250,19 @@ def estrai_consumi(testo: str) -> str:
     """Estrae i consumi con pattern completi e adattati alle bollette fornite."""
     try:
         # Pattern principali basati sulle bollette analizzate
-        patterns = [
-            # Pattern per bollette acqua (es. Acque SpA, Publiacqua, GAIA)
+        patterns = patterns = [
+            # Pattern specifico per bollette GAIA
+            r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+
+            # Pattern generali
             r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:consumo\s*medio\s*annuo)\s*[\d]{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)'
-            
-            # Pattern per tabelle di consumo (es. DETTAGLIO CONSUMI)
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
             r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
-            
-            # Pattern generici per diversi tipi di fornitura
             r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
             r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            
-            # Pattern per sezioni specifiche trovate nelle bollette
             r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$'
         ]

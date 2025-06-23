@@ -1,14 +1,13 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import re
-import pandas as pd
 
-# --- Estrazione dati dal PDF ---
+# --- Funzione per estrarre dati dal PDF ---
 def estrai_dati_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     testo = "".join(pagina.get_text() for pagina in doc)
 
-    # Società
+    # Nome società (case insensitive, cercando più varianti)
     match_societa = re.search(r'\b(AGSM\s*AIM\s*ENERGIA|AGSM\s*ENERGIA|AIM\s*ENERGIA)\b', testo, re.IGNORECASE)
     nome_societa = match_societa.group(1).upper() if match_societa else "N/D"
 
@@ -17,29 +16,30 @@ def estrai_dati_da_pdf(file):
         r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE
     )
 
-    # Data di chiusura
+    # Data di chiusura (solo la data)
     data_chiusura = re.search(
         r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
 
-    # Periodo di riferimento
+    # Periodo di riferimento "dal ... al ..."
     periodo = re.search(
         r'dal\s+([0-9]{2}/[0-9]{2}/[0-9]{4})\s+al\s+([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
     periodo_rif = f"{periodo.group(1)} - {periodo.group(2)}" if periodo else "N/D"
 
-    # Totale bolletta
+    # Totale bolletta (es. "Totale bolletta: 123,45" o "Totale bolletta - 123,45")
     totale_bolletta = re.search(
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
-    # Consumi fatturati (sommati)
+    # Consumi fatturati (regex flessibile, somma tutti i valori)
     consumi_trovati = re.findall(
-        r'consumi\s+fatturati\s*[:\-]?\s*([\d.,]+)', testo, re.IGNORECASE
+        r'consumi\s+fatturati.*?([\d.,]+)\s*(?:kWh|smc)?', testo, re.IGNORECASE
     )
     consumi_valori = []
     for c in consumi_trovati:
         try:
+            # Trasformo "1.234,56" -> "1234.56"
             valore = float(c.replace(".", "").replace(",", "."))
             consumi_valori.append(valore)
         except:
@@ -59,16 +59,19 @@ def estrai_dati_da_pdf(file):
         "Consumi": totale_consumi
     }
 
-# --- Visualizza tabella HTML copiabile ---
+# --- Funzione per mostrare tabella HTML copiabile ---
 def mostra_tabella_html(dati):
     html = "<table style='border-collapse: collapse; width: 100%;'>"
+    # Header
     html += "<tr>" + "".join(f"<th style='border: 1px solid black; padding: 4px;'>{col}</th>" for col in dati.keys()) + "</tr>"
+    # Values
     html += "<tr>" + "".join(f"<td style='border: 1px solid black; padding: 4px;'>{val}</td>" for val in dati.values()) + "</tr>"
     html += "</table>"
-    st.markdown("### 📋 Copia la tabella qui sotto e incolla in Excel")
+
+    st.markdown("### 📋 Copia la tabella qui sotto e incolla direttamente in Excel")
     st.markdown(html, unsafe_allow_html=True)
 
-# --- Streamlit App ---
+# --- Streamlit app ---
 st.set_page_config(page_title="Report Bolletta", layout="centered")
 st.title("📄 Report Estratto da Bolletta PDF")
 
@@ -80,5 +83,4 @@ if file_pdf:
 
     st.success("✅ Dati estratti correttamente!")
 
-    # ✅ Mostra tabella HTML per copia/incolla
     mostra_tabella_html(dati)

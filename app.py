@@ -145,24 +145,17 @@ def estrai_totale_bolletta(testo: str) -> str:
 def estrai_consumi(testo: str) -> str:
     """Estrae i consumi dal testo."""
     try:
+        # Cerca la dicitura originale
         testo_upper = testo.upper()
         idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
-        if idx == -1:
-            return "N/D"
+        if idx != -1:
+            snippet = testo_upper[idx:idx+600]
+            match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+            if match:
+                valore = match.group(1).replace('.', '').replace(',', '.')
+                return float(valore)
 
-        snippet = testo_upper[idx:idx+600]
-        match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
-        if match:
-            valore = match.group(1).replace('.', '').replace(',', '.')
-            return float(valore)
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione dei consumi: {e}")
-
-    return "N/D"
-
-def estrai_totale_consumo_fatturato(testo: str) -> str:
-    """Estrae il totale consumo fatturato per il periodo di riferimento dal testo."""
-    try:
+        # Cerca la nuova dicitura "Totale consumo fatturato per il periodo di riferimento"
         patterns = [
             r'Totale consumo fatturato per il periodo di riferimento[:\-]?\s*([\d\.,]+)',
             r'Totale consumo fatturato[:\-]?\s*([\d\.,]+)',
@@ -176,7 +169,7 @@ def estrai_totale_consumo_fatturato(testo: str) -> str:
                 valore = match.group(1).replace('.', '').replace(',', '.')
                 return float(valore)
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del totale consumo fatturato: {e}")
+        st.error(f"Errore durante l'estrazione dei consumi: {e}")
 
     return "N/D"
 
@@ -193,8 +186,7 @@ def estrai_dati(file) -> Dict:
         "Numero Fattura": estrai_numero_fattura(testo),
         "Totale Bolletta (€)": estrai_totale_bolletta(testo),
         "File": file.name,
-        "Consumi": estrai_consumi(testo),
-        "Totale Consumo Fatturato": estrai_totale_consumo_fatturato(testo)
+        "Consumi": estrai_consumi(testo)
     }
 
 def mostra_tabella(dati_lista: List[Dict]) -> None:

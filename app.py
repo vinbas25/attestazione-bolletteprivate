@@ -9,7 +9,6 @@ def estrai_testo_da_pdf(file):
     return testo
 
 def estrai_societa(testo):
-    # Cerca esattamente AGSM AIM ENERGIA, caso insensibile
     m = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
     if m:
         return m.group(0).upper()
@@ -45,6 +44,7 @@ def parse_date_string(g, mese, anno):
 def estrai_data_fattura_intelligente(testo):
     testo_lower = testo.lower()
 
+    # Aggiungo "fattura del" come keyword importante
     keywords = [
         "data fattura",
         "data emissione",
@@ -52,14 +52,13 @@ def estrai_data_fattura_intelligente(testo):
         "data chiusura",
         "emissione fattura",
         "emissione",
+        "fattura del",
         "fattura",
         "data"
     ]
 
-    # Pattern date, include gg/mm/yyyy, gg-mm-yyyy, 23 giugno 2025, ecc.
     pattern_date = r'([0-3]?\d)[/\-\s]([0-9]{1,2}|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[/\-\s]?(\d{2,4})'
 
-    # Trovo tutte le date nel testo con posizione
     tutte_date = []
     for m in re.finditer(pattern_date, testo_lower):
         data = parse_date_string(m.group(1), m.group(2), m.group(3))
@@ -69,17 +68,14 @@ def estrai_data_fattura_intelligente(testo):
     if not tutte_date:
         return "N/D"
 
-    # Trova la posizione delle keywords nel testo
     pos_keywords = []
     for kw in keywords:
         for m in re.finditer(kw, testo_lower):
             pos_keywords.append(m.start())
 
-    # Se nessuna keyword trovata, prendi la prima data in assoluto
     if not pos_keywords:
         return tutte_date[0][0].strftime("%d/%m/%Y")
 
-    # Cerco la data più vicina a una keyword
     distanza_minima = None
     data_scelta = None
     for data, pos_data in tutte_date:

@@ -1,4 +1,4 @@
-fCONSUMI
+# CONSUMI
 import streamlit as st
 import fitz  # PyMuPDF
 import re
@@ -15,7 +15,7 @@ st.markdown("""
     <style>
         /* Nasconde menu, header e footer */
         #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}CONSUMI
+        footer {visibility: hidden;}
         header {visibility: hidden;}
         
         /* Riduce padding per sfruttare tutto lo spazio */
@@ -142,7 +142,7 @@ def estrai_data_fattura(testo: str) -> str:
                         return data.strftime("%d/%m/%Y")
     except Exception as e:
         logger.error(f"Errore durante l'estrazione della data: {str(e)}")
-        return "N/D"
+    return "N/D"
 
 def estrai_pod_pdr(testo: str) -> str:
     """Estrae POD o PDR unificato con pattern specifici."""
@@ -313,6 +313,7 @@ def estrai_consumi(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
 
     return "N/D"
+
 def estrai_dati_cliente(testo: str) -> str:
     """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""
     try:
@@ -478,7 +479,7 @@ def main():
             status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
             st.subheader("📋 Dati Estratti")
             if raggruppa_societa:
-                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D")))
                 if societa_disponibili:
                     societa = st.selectbox(
                         "Filtra per società",

@@ -29,43 +29,64 @@ def estrai_periodo(testo):
 def estrai_data_fattura_intelligente(testo):
     testo_lower = testo.lower()
 
-    patterns = [
-        r'data\s+fattura\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
-        r'data\s+fattura\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
-        r'data\s+emissione\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
-        r'data\s+emissione\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
-        r'documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})',
-        r'emissione\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
-        r'emissione\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
-        r'data\s+fattura\s*[:\-]?\s*([0-9]{1,2}\s+[a-zàé]{3,9}\s+[0-9]{4})',
-        r'emissione\s*[:\-]?\s*([0-9]{1,2}\s+[a-zàé]{3,9}\s+[0-9]{4})',
+    keywords = [
+        "data fattura",
+        "data emissione",
+        "documento di chiusura",
+        "data chiusura",
+        "emissione fattura",
+        "emissione",
+        "fattura",
+        "data"
     ]
+
+    pattern_date = r'([0-3]?\d)[/\-\s]([01]?\d|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[/\-\s]?(\d{2,4})'
 
     mesi = {
         "gennaio":1, "febbraio":2, "marzo":3, "aprile":4, "maggio":5, "giugno":6,
         "luglio":7, "agosto":8, "settembre":9, "ottobre":10, "novembre":11, "dicembre":12
     }
 
-    for p in patterns:
-        m = re.search(p, testo_lower)
-        if m:
-            data_str = m.group(1)
-            try:
-                if '/' in data_str or '-' in data_str:
-                    data_str = data_str.replace('-', '/')
-                    dt = datetime.datetime.strptime(data_str, "%d/%m/%Y").date()
+    for keyword in keywords:
+        for match in re.finditer(keyword, testo_lower):
+            start = match.start()
+            blocco = testo_lower[start:start+100]
+
+            for m in re.finditer(pattern_date, blocco):
+                g, mese, anno = m.groups()
+
+                try:
+                    giorno = int(g)
+                    if mese.isdigit():
+                        mese_num = int(mese)
+                    else:
+                        mese_num = mesi.get(mese, 0)
+
+                    if len(anno) == 2:
+                        anno_num = 2000 + int(anno)
+                    else:
+                        anno_num = int(anno)
+
+                    if mese_num == 0:
+                        continue
+
+                    dt = datetime.date(anno_num, mese_num, giorno)
                     return dt.strftime("%d/%m/%Y")
-                else:
-                    parti = data_str.split()
-                    if len(parti) == 3:
-                        giorno = int(parti[0])
-                        mese = mesi.get(parti[1], 0)
-                        anno = int(parti[2])
-                        if mese != 0:
-                            dt = datetime.date(anno, mese, giorno)
-                            return dt.strftime("%d/%m/%Y")
-            except:
-                pass
+
+                except:
+                    continue
+
+    m_generale = re.search(r'([0-3]?\d)[/\-]([01]?\d)[/\-](\d{4})', testo_lower)
+    if m_generale:
+        try:
+            giorno = int(m_generale.group(1))
+            mese = int(m_generale.group(2))
+            anno = int(m_generale.group(3))
+            dt = datetime.date(anno, mese, giorno)
+            return dt.strftime("%d/%m/%Y")
+        except:
+            pass
+
     return "N/D"
 
 def estrai_data_chiusura(testo):

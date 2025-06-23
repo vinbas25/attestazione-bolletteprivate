@@ -83,4 +83,34 @@ def estrai_consumi(testo):
 def estrai_dati(file):
     txt = estrai_testo_da_pdf(file)
     return {
-        "Società": estrai_societa
+        "Società": estrai_societa(txt),
+        "Periodo di Riferimento": estrai_periodo(txt),
+        "Data": estrai_data_fattura(txt),
+        "POD": "",
+        "Dati Cliente": "",
+        "Via": "",
+        "Numero Fattura": estrai_numero_fattura(txt),
+        "Totale Bolletta (€)": estrai_totale_bolletta(txt),
+        "File": "",
+        "Consumi": estrai_consumi(txt)
+    }
+
+def mostra_tabella(d):
+    cols, vals = list(d.keys()), list(d.values())
+    html = "<table style='border-collapse:collapse;width:100%'>"
+    html += "<tr>" + "".join(f"<th style='border:1px solid #888;padding:4px'>{c}</th>" for c in cols) + "</tr>"
+    html += "<tr>" + "".join(f"<td style='border:1px solid #888;padding:4px'>{v}</td>" for v in vals) + "</tr>"
+    html += "</table>"
+    st.markdown("### 📋 Copia/Incolla in Excel")
+    st.markdown(html, unsafe_allow_html=True)
+
+# Streamlit UI
+st.set_page_config(page_title="Estrazione Bolletta", layout="centered")
+st.title("📄 Lettore Bolletta PDF")
+
+f = st.file_uploader("Carica bolletta PDF", type="pdf")
+if f:
+    with st.spinner("Elaborazione..."):
+        dati = estrai_dati(f)
+    st.success("✅ Dati pronti")
+    mostra_tabella(dati)

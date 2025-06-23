@@ -268,7 +268,7 @@ def estrai_indirizzo(testo: str) -> str:
         match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL) 
         if match_gaia: 
             
-            return match_gaia.group(1).strip()
+            return match_gaia.group(2).strip()
             
             # Prova prima il pattern specifico per Nuove Acque
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)

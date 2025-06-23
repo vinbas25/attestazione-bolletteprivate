@@ -313,7 +313,7 @@ def estrai_consumi(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
 
     return "N/D"
-
+return "N/D"
 
 def estrai_dati_cliente(testo: str) -> str:
     """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""

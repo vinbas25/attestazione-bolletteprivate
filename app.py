@@ -8,7 +8,7 @@ from io import BytesIO
 
 # Configurazione pagina Streamlit
 st.set_page_config(
-    page_title="📊 Report Consumi Migliorato",
+    page_title="📊 Analizzatore Bollette Migliorato",
     layout="wide",
     page_icon="📈",
     initial_sidebar_state="expanded"
@@ -37,16 +37,6 @@ SOCIETA_CONOSCIUTE = {
     "EDISON ENERGIA": r"EDISON\s*ENERGIA"
 }
 
-# Unità di misura per i consumi
-UNITA_MISURA = {
-    "luce": "kWh",
-    "elettricità": "kWh",
-    "energia": "kWh", 
-    "gas": "mc",
-    "acqua": "mc",
-    "idrico": "mc"
-}
-
 def estrai_testo_da_pdf(file) -> str:
     """Estrae il testo da un file PDF con gestione errori migliorata."""
     try:
@@ -55,6 +45,9 @@ def estrai_testo_da_pdf(file) -> str:
         for page in doc:
             testo += page.get_text()
         return testo
+    except fitz.FileDataError:
+        st.error(f"File {file.name} non valido o corrotto")
+        return ""
     except Exception as e:
         st.error(f"Errore durante l'estrazione del testo dal PDF {file.name}: {str(e)}")
         return ""
@@ -158,13 +151,13 @@ def estrai_data_fattura(testo: str) -> str:
         if iso_match:
             try:
                 return datetime.datetime.strptime(iso_match.group(1), "%Y-%m-%d").strftime("%d/%m/%Y")
-            except:
+            except ValueError:
                 pass
 
+        return "N/D"
     except Exception as e:
-        st.error(f"Errore durante l'estrazione della data della fattura: {str(e)}")
-
-    return "N/D"
+        st.error(f"Errore durante l'estrazione della data: {str(e)}")
+        return "N/D"
 
 def estrai_pod_pdr(testo: str) -> Tuple[str, str]:
     """Estrae POD (luce) e PDR (gas) con pattern specifici."""
@@ -267,8 +260,13 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and len(match.groups()) >= 1:
                 importo = match.group(1).replace('.', '').replace(',', '.')
-                valuta = match.group(2) if len(match.groups()) >= 2 and match.group(2) else "€"
-                return importo, valuta
+                try:
+                    # Validazione numerica
+                    float(importo)
+                    valuta = match.group(2) if len(match.groups()) >= 2 and match.group(2) else "€"
+                    return importo, valuta
+                except ValueError:
+                    continue
 
     except Exception as e:
         st.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
@@ -288,9 +286,12 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
         for pattern in energy_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and match.group(1):
-                consumo = match.group(1).replace('.', '').replace(',', '.')
-                unita = match.group(2).lower() if match.group(2) else "kWh"
-                return consumo, unita
+                try:
+                    consumo = float(match.group(1).replace('.', '').replace(',', '.'))
+                    unita = match.group(2).lower() if match.group(2) is not None else "kWh"
+                    return f"{consumo:.2f}", unita
+                except ValueError:
+                    continue
 
         # Cerca consumi gas (mc)
         gas_patterns = [
@@ -302,13 +303,16 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
         for pattern in gas_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and match.group(1):
-                consumo = match.group(1).replace('.', '').replace(',', '.')
-                unita = "mc"
-                if match.group(2):
-                    unita = match.group(2).lower()
-                    if "metri cubi" in unita:
-                        unita = "mc"
-                return consumo, unita
+                try:
+                    consumo = float(match.group(1).replace('.', '').replace(',', '.'))
+                    unita = "mc"
+                    if match.group(2):
+                        unita = match.group(2).lower()
+                        if "metri cubi" in unita:
+                            unita = "mc"
+                    return f"{consumo:.2f}", unita
+                except ValueError:
+                    continue
 
         # Cerca consumi acqua (mc)
         water_patterns = [
@@ -320,13 +324,16 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
         for pattern in water_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and match.group(1):
-                consumo = match.group(1).replace('.', '').replace(',', '.')
-                unita = "mc"
-                if match.group(2):
-                    unita = match.group(2).lower()
-                    if "litri" in unita:
-                        unita = "l"
-                return consumo, unita
+                try:
+                    consumo = float(match.group(1).replace('.', '').replace(',', '.'))
+                    unita = "mc"
+                    if match.group(2):
+                        unita = match.group(2).lower()
+                        if "litri" in unita:
+                            unita = "l"
+                    return f"{consumo:.2f}", unita
+                except ValueError:
+                    continue
 
     except Exception as e:
         st.error(f"Errore durante l'estrazione dei consumi: {str(e)}")
@@ -336,6 +343,9 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
 def estrai_dati(file) -> Dict:
     """Estrae tutti i dati da un singolo file PDF."""
     testo = estrai_testo_da_pdf(file)
+    if not testo:
+        return None
+        
     societa, tipo_fornitura = estrai_societa(testo)
     pod, pdr = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
@@ -356,76 +366,97 @@ def estrai_dati(file) -> Dict:
         "Note": ""
     }
 
-def crea_excel(dati_lista: List[Dict]) -> BytesIO:
+def crea_excel(dati_lista: List[Dict]) -> Optional[BytesIO]:
     """Crea un file Excel in memoria con i dati estratti."""
-    output = BytesIO()
-    df = pd.DataFrame(dati_lista)
-    
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Report')
+    try:
+        df = pd.DataFrame([d for d in dati_lista if d is not None])
         
-        # Formattazione foglio Excel
-        workbook = writer.book
-        worksheet = writer.sheets['Report']
+        if len(df) == 0:
+            st.warning("Nessun dato valido da esportare")
+            return None
+            
+        output = BytesIO()
         
-        # Formato header
-        header_format = workbook.add_format({
-            'bold': True,
-            'text_wrap': True,
-            'valign': 'top',
-            'fg_color': '#4472C4',
-            'font_color': 'white',
-            'border': 1
-        })
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Report')
+            
+            workbook = writer.book
+            worksheet = writer.sheets['Report']
+            
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#4472C4',
+                'font_color': 'white',
+                'border': 1
+            })
+            
+            data_format = workbook.add_format({
+                'text_wrap': True,
+                'valign': 'top',
+                'border': 1
+            })
+            
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                
+            for row in range(1, len(df)+1):
+                for col in range(len(df.columns)):
+                    worksheet.write(row, col, df.iloc[row-1, col], data_format)
+            
+            # Auto-adjust column widths
+            for i, col in enumerate(df.columns):
+                max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
+                worksheet.set_column(i, i, max_len)
+                
+        output.seek(0)
+        return output
         
-        # Formato dati
-        data_format = workbook.add_format({
-            'text_wrap': True,
-            'valign': 'top',
-            'border': 1
-        })
-        
-        # Applica formati
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
-        
-        for row in range(1, len(df)+1):
-            for col in range(len(df.columns)):
-                worksheet.write(row, col, df.iloc[row-1, col], data_format)
-        
-        # Auto-adjust column widths
-        for i, col in enumerate(df.columns):
-            max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
-            worksheet.set_column(i, i, max_len)
-    
-    output.seek(0)
-    return output
+    except Exception as e:
+        st.error(f"Errore durante la creazione del file Excel: {str(e)}")
+        return None
 
 def mostra_grafico_consumi(dati_lista: List[Dict]):
     """Mostra un grafico comparativo dei consumi se disponibili."""
     try:
-        df = pd.DataFrame(dati_lista)
+        df = pd.DataFrame([d for d in dati_lista if d is not None])
         
-        # Filtra solo righe con consumi numerici
-        df['Consumo (val)'] = pd.to_numeric(df.iloc[:, -2], errors='coerce')
-        df = df.dropna(subset=['Consumo (val)'])
+        if len(df) == 0:
+            return
+            
+        # Estrai colonne consumo e unità
+        consumo_col = next((c for c in df.columns if c.startswith("Consumo")), None)
+        if not consumo_col:
+            return
+            
+        # Prova a convertire in numerico
+        df['Consumo_val'] = pd.to_numeric(df[consumo_col].str.replace('[^\d.]', '', regex=True), errors='coerce')
+        df = df.dropna(subset=['Consumo_val'])
         
-        if len(df) > 1:
-            st.subheader("📈 Confronto Consumi")
+        if len(df) < 2:
+            return
             
-            # Determina unità di misura (assumiamo sia la stessa per tutte)
-            unita = df.iloc[0, -1]  # Ultima colonna è l'unità
-            
-            # Crea grafico
-            chart_data = df[['File', 'Consumo (val)']].set_index('File')
-            st.bar_chart(chart_data)
-            
+        st.subheader("📈 Confronto Consumi")
+        
+        # Determina unità di misura
+        unita = consumo_col.split('(')[-1].rstrip(')') if '(' in consumo_col else ""
+        
+        # Prepara dati per il grafico
+        chart_data = df[['File', 'Consumo_val']].rename(columns={'Consumo_val': 'Consumo'})
+        chart_data = chart_data.set_index('File')
+        
+        # Crea grafico
+        st.bar_chart(chart_data)
+        
+        if unita:
             st.caption(f"Unità di misura: {unita}")
+            
     except Exception as e:
-        st.warning(f"Impossibile generare il grafico dei consumi: {str(e)}")
+        st.warning(f"Impossibile generare il grafico: {str(e)}")
 
 def main():
-    st.title("📊 Report Consumi Migliorato")
+    st.title("📊 Analizzatore Bollette Migliorato")
     st.markdown("""
     **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
     """)
@@ -453,29 +484,36 @@ def main():
             
             try:
                 dati = estrai_dati(file)
-                risultati.append(dati)
+                if dati:
+                    risultati.append(dati)
             except Exception as e:
                 st.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
                 continue
         
         progress_bar.empty()
-        status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati.")
         
         if risultati:
+            status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
+            
             # Mostra tabella risultati
             st.subheader("📋 Dati Estratti")
             
-            if raggrupa_societa:
-                societa = st.selectbox(
-                    "Filtra per società",
-                    options=["Tutte"] + sorted(list(set(d['Società'] for d in risultati if d['Società'] != "N/D")),
-                    index=0
-                )
-                
-                if societa != "Tutte":
-                    risultati_filtrati = [d for d in risultati if d['Società'] == societa]
+            if raggruppa_societa:
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and d['Società'] != "N/D"))
+                if societa_disponibili:
+                    societa = st.selectbox(
+                        "Filtra per società",
+                        options=["Tutte"] + societa_disponibili,
+                        index=0
+                    )
+                    
+                    if societa != "Tutte":
+                        risultati_filtrati = [d for d in risultati if d['Società'] == societa]
+                    else:
+                        risultati_filtrati = risultati
                 else:
                     risultati_filtrati = risultati
+                    st.warning("Nessuna società riconosciuta nei documenti")
             else:
                 risultati_filtrati = risultati
             
@@ -486,7 +524,7 @@ def main():
             )
             
             # Mostra grafici se richiesto
-            if mostra_grafici:
+            if mostra_grafici and risultati_filtrati:
                 mostra_grafico_consumi(risultati_filtrati)
             
             # Pulsanti esportazione
@@ -496,22 +534,28 @@ def main():
             with col1:
                 # Esporta Excel
                 excel_data = crea_excel(risultati_filtrati)
-                st.download_button(
-                    label="Scarica Excel",
-                    data=excel_data,
-                    file_name="report_consumi.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                if excel_data:
+                    st.download_button(
+                        label="Scarica Excel",
+                        data=excel_data,
+                        file_name="report_consumi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        help="Scarica i dati in formato Excel"
+                    )
             
             with col2:
                 # Esporta CSV
-                csv = pd.DataFrame(risultati_filtrati).to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Scarica CSV",
-                    data=csv,
-                    file_name="report_consumi.csv",
-                    mime="text/csv"
-                )
+                if risultati_filtrati:
+                    csv = pd.DataFrame(risultati_filtrati).to_csv(index=False, sep=';').encode('utf-8')
+                    st.download_button(
+                        label="Scarica CSV",
+                        data=csv,
+                        file_name="report_consumi.csv",
+                        mime="text/csv",
+                        help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
+                    )
+        else:
+            status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
     
     st.markdown("---")
     st.markdown("""

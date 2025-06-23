@@ -2,7 +2,6 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 import pandas as pd
-from io import BytesIO
 
 # --- Estrazione dati dal PDF ---
 def estrai_dati_da_pdf(file):
@@ -34,7 +33,21 @@ def estrai_dati_da_pdf(file):
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
+    # Consumi fatturati (sommati)
+    consumi_trovati = re.findall(
+        r'consumi\s+fatturati\s*[:\-]?\s*([\d.,]+)', testo, re.IGNORECASE
+    )
+    consumi_valori = []
+    for c in consumi_trovati:
+        try:
+            valore = float(c.replace(".", "").replace(",", "."))
+            consumi_valori.append(valore)
+        except:
+            continue
+    totale_consumi = round(sum(consumi_valori), 2) if consumi_valori else "N/D"
+
     return {
+        "File": "",
         "Società": nome_societa,
         "Periodo di Riferimento": periodo_rif,
         "Data": data_chiusura.group(1) if data_chiusura else "N/D",
@@ -42,15 +55,14 @@ def estrai_dati_da_pdf(file):
         "Dati Cliente": "",
         "Via": "",
         "Numero Fattura": numero_fattura.group(1) if numero_fattura else "N/D",
-        "Totale Bolletta (€)": totale_bolletta.group(1) if totale_bolletta else "N/D"
+        "Totale Bolletta (€)": totale_bolletta.group(1) if totale_bolletta else "N/D",
+        "Consumi": totale_consumi
     }
 
-# --- Visualizza HTML copiabile ---
+# --- Visualizza tabella HTML copiabile ---
 def mostra_tabella_html(dati):
     html = "<table style='border-collapse: collapse; width: 100%;'>"
-    # Intestazioni
     html += "<tr>" + "".join(f"<th style='border: 1px solid black; padding: 4px;'>{col}</th>" for col in dati.keys()) + "</tr>"
-    # Valori
     html += "<tr>" + "".join(f"<td style='border: 1px solid black; padding: 4px;'>{val}</td>" for val in dati.values()) + "</tr>"
     html += "</table>"
     st.markdown("### 📋 Copia la tabella qui sotto e incolla in Excel")
@@ -66,7 +78,7 @@ if file_pdf:
     with st.spinner("Estrazione dati in corso..."):
         dati = estrai_dati_da_pdf(file_pdf)
 
-    st.success("✅ Dati estratti con successo!")
+    st.success("✅ Dati estratti correttamente!")
 
-    # ✅ Mostra tabella copiabile
+    # ✅ Mostra tabella HTML per copia/incolla
     mostra_tabella_html(dati)

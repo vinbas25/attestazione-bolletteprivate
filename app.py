@@ -199,65 +199,24 @@ def estrai_indirizzo(testo: str) -> str:
         return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
-    """Estrae il numero della fattura con pattern avanzati e validazione."""
+    """Estrae il numero della fattura con più pattern e validazione."""
     try:
-        # Pattern ordinati per specificità (i più specifici prima)
         patterns = [
-            # Formati standard italiani con prefisso (es: FATTURA N° ABC123456)
-            r'(?:numero\s*fattura|n°?\s*fattura|fattura\s*n\.?|n\.?\s*fattura)\s*[:\-]?\s*([A-Z]{2,5}\s*[\/\-]?\s*\d{2,10}\s*[\/\-]?\s*\d{0,5})',
-            
-            # Formati con documento/rif (es: DOC. AB1234567-01)
-            r'(?:doc\.?\s*|documento\s*|rif\.?\s*|riferimento\s*)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9\/]*)',
-            
-            # Formati numerici complessi (es: 2023/12345 o 123-4567890)
-            r'\b(?<![\d\/\-])([A-Z]{0,3}\d{2,4}[\/\-]\d{3,8}[\/\-]?\d{0,4})\b(?![\d\/\-])',
-            
-            # Formati con anno iniziale (es: 2023-123456)
-            r'\b(20\d{2})[\-\/](\d{3,8})\b',
-            
-            # Numerazioni semplici ma lunghe (min 6 cifre)
-            r'\b(\d{6,10})\b',
-            
-            # Formati particolari con lettere e numeri (es: AB12345XYZ)
-            r'\b([A-Z]{2,5}\d{5,8}[A-Z]{0,3})\b'
+            r'(?:numero\s*fattura|n°\s*fattura|fattura\s*n\.?)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'(?:rif\.|riferimento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'[Ff]attura\s+(?:elektronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'\b\d{2,4}[\/\-]\d{3,8}\b',
+            r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
 
-        candidates = []
-        
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
             for match in matches:
                 num = match.group(1) if match.groups() else match.group(0)
-                num = re.sub(r'\s+', '', num.strip())  # Rimuovi spazi
-                
-                # Validazioni aggiuntive
-                if len(num) >= 5:  # Lunghezza minima
-                    # Deve contenere numeri
-                    if any(c.isdigit() for c in num):
-                        # Non deve essere una data (es: 12/03/2023)
-                        if not re.match(r'^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$', num):
-                            # Non deve essere un codice fiscale/P.IVA
-                            if not (re.match(r'^[0-9]{11}$', num) or 
-                                    re.match(r'^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$', num)):
-                                candidates.append(num)
-
-        # Seleziona il candidato migliore
-        if candidates:
-            # Preferisce match più lunghi e con struttura complessa
-            candidates.sort(key=lambda x: (-len(x), -len(re.findall(r'[\/\-]', x)), x))
-            return candidates[0]
-
-        # Fallback: cerca qualsiasi sequenza alfanumerica che sembri un numero fattura
-        fallback_patterns = [
-            r'\b[A-Z]{2,}\d{5,}\b',
-            r'\b\d{4,}[A-Z]{2,}\b',
-            r'\b\d{2,}[\/\-][A-Z]+\d+\b'
-        ]
-        
-        for pattern in fallback_patterns:
-            match = re.search(pattern, testo)
-            if match:
-                return match.group(0)
+                num = num.strip()
+                if len(num) >= 5 and any(c.isdigit() for c in num):
+                    return num
 
     except Exception as e:
         st.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")

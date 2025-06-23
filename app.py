@@ -160,6 +160,26 @@ def estrai_consumi(testo: str) -> str:
 
     return "N/D"
 
+def estrai_totale_consumo_fatturato(testo: str) -> str:
+    """Estrae il totale consumo fatturato per il periodo di riferimento dal testo."""
+    try:
+        patterns = [
+            r'Totale consumo fatturato per il periodo di riferimento[:\-]?\s*([\d\.,]+)',
+            r'Totale consumo fatturato[:\-]?\s*([\d\.,]+)',
+            r'Consumo totale fatturato[:\-]?\s*([\d\.,]+)',
+            r'Totale fatturato per il periodo[:\-]?\s*([\d\.,]+)'
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, testo, re.IGNORECASE)
+            if match:
+                valore = match.group(1).replace('.', '').replace(',', '.')
+                return float(valore)
+    except Exception as e:
+        st.error(f"Errore durante l'estrazione del totale consumo fatturato: {e}")
+
+    return "N/D"
+
 def estrai_dati(file) -> Dict:
     """Estrae i dati da un singolo file PDF."""
     testo = estrai_testo_da_pdf(file)
@@ -173,7 +193,8 @@ def estrai_dati(file) -> Dict:
         "Numero Fattura": estrai_numero_fattura(testo),
         "Totale Bolletta (€)": estrai_totale_bolletta(testo),
         "File": file.name,
-        "Consumi": estrai_consumi(testo)
+        "Consumi": estrai_consumi(testo),
+        "Totale Consumo Fatturato": estrai_totale_consumo_fatturato(testo)
     }
 
 def mostra_tabella(dati_lista: List[Dict]) -> None:

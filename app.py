@@ -254,7 +254,6 @@ def estrai_indirizzo(testo: str) -> str:
 if __name__ == "__main__":
     testo_bolletta = """
     INTESTAZIONE
-    GUARDIA DI FINANZA, C.F. 80017930480
     PZA G.MENCONI 6
     54033 MARINA DI CARRARA MS
     """

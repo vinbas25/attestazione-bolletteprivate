@@ -98,16 +98,13 @@ def estrai_periodo(testo: str) -> str:
             r'Periodo di riferimento\s+(\d{1,2}/\d{1,2}/\d{4}\s*-\s*\d{1,2}/\d{1,2}/\d{4})',  # Formato con trattino
             r'Periodo\s*:\s*(\d{1,2}/\d{1,2}/\d{4})\s*-\s*(\d{1,2}/\d{1,2}/\d{4})',  # Versione abbreviata
             r'Periodo fatturazione\s*:\s*(\d{1,2}/\d{1,2}/\d{4})\s*-\s*(\d{1,2}/\d{1,2}/\d{4})',  # Alternativa con "fatturazione"
-            # Pattern specifico per Publiacqua (formato "dal gg/mm/aaaa al gg/mm/aaaa")
             r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})',
-            # Pattern per "Periodo di riferimento gg/mm/aaaa - gg/mm/aaaa"
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
-            # Pattern per la sezione "Che cosa pago?"
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
-            # Pattern generico come fallback
             r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
+            r'Consumo nel periodo di \d+ giorni:\s*(\d+)\s*mc',
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)

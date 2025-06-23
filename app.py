@@ -555,7 +555,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; font-size: 14px; color: gray;">
-        Strumento sviluppato per l'estrazione automatica di dati da bollette PDF<br>
+        Strumento sviluppato dal Mar. Vincenzo Basile<br>
         Supporta i principali fornitori italiani di luce, gas e acqua
     </div>
     """, unsafe_allow_html=True)

@@ -251,6 +251,9 @@ def estrai_consumi(testo: str) -> str:
     try:
         # Pattern principali basati sulle bollette analizzate
         patterns = patterns = [
+            # Pattern specifico per bollette con valore dettagliato in Smc
+            r'totale\s+Smc\s+fatturati\s*[:\-]?\s*([\d\.]+,\d+)\s*Smc',
+            
             # Pattern specifico per bollette GAIA
             r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
 
@@ -263,7 +266,6 @@ def estrai_consumi(testo: str) -> str:
             r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
             r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'totale\s+Smc\s+fatturati\s*[:\-]?\s*([\d\.]+,\d+)\s*Smc',
             r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$'
         ]

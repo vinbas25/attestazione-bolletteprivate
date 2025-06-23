@@ -175,7 +175,7 @@ def estrai_numero_fattura(testo: str) -> str:
             r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'(?:rif\.|riferimento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'[Ff]attura\s+(?:elektronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
-            r'Numero fattura elettronica valida ai fini fiscali\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)', # Pattern specifico richiesto
             r'\b\d{2,4}[\/\-]\d{3,8}\b',
             r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
@@ -189,6 +189,7 @@ def estrai_numero_fattura(testo: str) -> str:
     except Exception as e:
         logger.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")
     return "N/D"
+
 
 def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
     """Estrae il totale e la valuta con più pattern."""

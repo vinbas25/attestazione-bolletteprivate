@@ -188,9 +188,17 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+import re
+import logging
+
+# Configurazione del logger
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
+
 def estrai_indirizzo(testo: str) -> str:
     """
     Tenta di estrarre l'indirizzo del cliente da un testo utilizzando regex.
+    Versione migliorata per gestire specificamente la bolletta GAIA S.p.A.
     
     Args:
         testo: Stringa contenente il testo da analizzare
@@ -199,7 +207,12 @@ def estrai_indirizzo(testo: str) -> str:
         Stringa con l'indirizzo estratto o "N/D" se non trovato
     """
     try:
+        # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
+        pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
+        
+        # Altri pattern generici
         patterns = [
+            pattern_bolletta_gaia,
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA\s(.*?\d{5}\s\w{2})',
             r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
@@ -209,15 +222,21 @@ def estrai_indirizzo(testo: str) -> str:
             r'(?:Indirizzo|Servizio erogato in|Luogo di fornitura|Indirizzo di fornitura|Indirizzo fornitura)\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.)\s+[A-Za-zÀ-ÿ\s]+?\s*\d{1,5}(?:\s*[A-Za-z]?)?)',
             r'DATI FORNITURA.*?VIA\s(.*?\d{5}\s\w{2})',
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA[\s\n]+(.*?\d{5}\s\w{2})',
-            r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',  # Original pattern from your example
+            r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
-                indirizzo = match.group(1).strip()
+                if pattern == pattern_bolletta_gaia:
+                    # Per la bolletta GAIA, uniamo le due righe dell'indirizzo
+                    indirizzo = f"{match.group(1).strip()} {match.group(2).strip()}"
+                else:
+                    indirizzo = match.group(1).strip()
+                
                 # Pulizia aggiuntiva dell'indirizzo
                 indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)  # Rimuove punteggiatura all'inizio/fine
+                indirizzo = re.sub(r'\s+', ' ', indirizzo)  # Sostituisce multipli spazi con uno solo
                 return indirizzo
                 
         return "N/D"
@@ -226,20 +245,17 @@ def estrai_indirizzo(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}", exc_info=True)
         return "N/D"
 
-# Example usage
+# Test con il contenuto della bolletta fornita
 if __name__ == "__main__":
-    text = """
-    DATI FORNITURA
-    CODICE UNIVOCO UFFICIO B8819D
-    GUARDIA DI FINANZA
-    C.F. 80017930480
-    VIA MANARA VALGIMIGLI 1
-    56124 PISA PI
+    testo_bolletta = """
+    INTESTAZIONE
+    GUARDIA DI FINANZA, C.F. 80017930480
+    PZA G.MENCONI 6
+    54033 MARINA DI CARRARA MS
     """
     
-    indirizzo = estrai_indirizzo(text)
-    print(f"Indirizzo estratto: {indirizzo}")  # Output: "MANARA VALGIMIGLI 1"
-
+    indirizzo = estrai_indirizzo(testo_bolletta)
+    print(f"Indirizzo estratto: {indirizzo}")  # Output atteso: "PZA G.MENCONI 6"
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""
     try:

@@ -3,16 +3,13 @@ import fitz  # PyMuPDF
 import re
 import datetime
 import pandas as pd
+import logging
 from typing import Optional, Dict, List, Tuple
 from io import BytesIO
 
-# Configurazione pagina Streamlit
-st.set_page_config(
-    page_title="📊 Analizzatore Bollette Migliorato",
-    layout="wide",
-    page_icon="📈",
-    initial_sidebar_state="expanded"
-)
+# Configurazione del logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Mappa mesi in italiano
 MESI_MAP = {
@@ -30,7 +27,7 @@ SOCIETA_CONOSCIUTE = {
     "ASA LIVORNO": r"ASA\s*LIVORNO",
     "ENEL ENERGIA": r"ENEL\s*ENERGIA",
     "ENI GAS E LUCE": r"ENI\s*GAS\s*E\s*LUCE",
-    "GAIA SPA": r"GAIA\s*SPA",  # Aggiunto GAIA SPA
+    "GAIA SPA": r"GAIA\s*SPA",
     "HERA COMM": r"HERA\s*COMM",
     "IREN": r"IREN",
     "PUBLIACQUA": r"PUBLIACQUA",
@@ -47,34 +44,28 @@ def estrai_testo_da_pdf(file) -> str:
             testo += page.get_text()
         return testo
     except fitz.FileDataError:
-        st.error(f"File {file.name} non valido o corrotto")
+        logger.error(f"File {file.name} non valido o corrotto")
         return ""
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del testo dal PDF {file.name}: {str(e)}")
+        logger.error(f"Errore durante l'estrazione del testo dal PDF {file.name}: {str(e)}")
         return ""
 
 def estrai_societa(testo: str) -> str:
     """Estrae la società con precisione migliorata."""
     try:
-        # Cerca corrispondenza esatta con società conosciute
         for societa, pattern in SOCIETA_CONOSCIUTE.items():
             if re.search(pattern, testo, re.IGNORECASE):
                 return societa
-
-        # Pattern generici di fallback
         patterns = [
             r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|ACQUA|SPA))\b',
             r'\b(SPA|S\.P\.A\.|SRL|S\.R\.L\.)\b'
         ]
-
         for pattern in patterns:
             match = re.search(pattern, testo)
             if match:
                 return match.group(0).strip()
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione della società: {str(e)}")
-
+        logger.error(f"Errore durante l'estrazione della società: {str(e)}")
     return "N/D"
 
 def estrai_periodo(testo: str) -> str:
@@ -85,42 +76,31 @@ def estrai_periodo(testo: str) -> str:
             r'periodo\s+di\s+riferimento\s*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*-\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'rif\.\s*periodo\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*al\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})'
         ]
-
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
             for match in matches:
                 if len(match.groups()) == 2:
                     return f"{match.group(1)} - {match.group(2)}"
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del periodo: {str(e)}")
-
+        logger.error(f"Errore durante l'estrazione del periodo: {str(e)}")
     return "N/D"
 
 def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
     """Parsing data migliorato con più formati supportati."""
     try:
         giorno = int(g)
-        
-        # Gestione mese come numero o nome
         if m.isdigit():
             mese = int(m)
         else:
             mese = MESI_MAP.get(m.lower().strip(), 0)
-        
-        # Gestione anno a 2 o 4 cifre
         if len(y) == 2:
             anno = 2000 + int(y)
         else:
             anno = int(y)
-        
-        # Validazione data
         if 1 <= mese <= 12 and 1 <= giorno <= 31:
             return datetime.date(anno, mese, giorno)
-            
     except (ValueError, TypeError) as e:
-        st.error(f"Errore durante il parsing della data: {str(e)}")
-    
+        logger.error(f"Errore durante il parsing della data: {str(e)}")
     return None
 
 def estrai_data_fattura(testo: str) -> str:
@@ -134,7 +114,6 @@ def estrai_data_fattura(testo: str) -> str:
             r'\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})\b',
             r'\b(?:al|il)\s+(\d{1,2})\s+(\w+)\s+(\d{4})\b'
         ]
-
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
             for match in matches:
@@ -142,41 +121,33 @@ def estrai_data_fattura(testo: str) -> str:
                     data = parse_date(match.group(1), match.group(2), match.group(3))
                     if data:
                         return data.strftime("%d/%m/%Y")
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione della data: {str(e)}")
+        logger.error(f"Errore durante l'estrazione della data: {str(e)}")
         return "N/D"
 
 def estrai_pod_pdr(testo: str) -> str:
     """Estrae POD o PDR unificato con pattern specifici."""
     try:
-        # Cerca prima POD (ha priorità)
         pod_patterns = [
             r'POD\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Punto\s*di\s*Prelievo\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Codice\s*POD\s*[:\-]?\s*([A-Z0-9]{14,16})'
         ]
-        
         for pattern in pod_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-                
-        # Se non trova POD, cerca PDR
         pdr_patterns = [
             r'PDR\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Punto\s*di\s*Ricerca\s*[:\-]?\s*([A-Z0-9]{14,16})',
             r'Codice\s*PDR\s*[:\-]?\s*([A-Z0-9]{14,16})'
         ]
-        
         for pattern in pdr_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-                
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
-    
+        logger.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
     return "N/D"
 
 def estrai_indirizzo(testo: str) -> str:
@@ -187,15 +158,13 @@ def estrai_indirizzo(testo: str) -> str:
             r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'
         ]
-        
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-                
         return "N/D"
     except Exception as e:
-        st.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
+        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
@@ -209,7 +178,6 @@ def estrai_numero_fattura(testo: str) -> str:
             r'\b\d{2,4}[\/\-]\d{3,8}\b',
             r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
-
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
             for match in matches:
@@ -217,10 +185,8 @@ def estrai_numero_fattura(testo: str) -> str:
                 num = num.strip()
                 if len(num) >= 5 and any(c.isdigit() for c in num):
                     return num
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")
-
+        logger.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")
     return "N/D"
 
 def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
@@ -232,7 +198,6 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
-
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and len(match.groups()) >= 1:
@@ -243,16 +208,13 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
                     return importo, valuta
                 except ValueError:
                     continue
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
-
+        logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
 def estrai_consumi(testo: str) -> str:
     """Estrae i consumi con pattern più completi."""
     try:
-        # Nuovi pattern aggiunti
         patterns = [
             r'(?:Totale\s*consumo\s*fatturato|RIEPILOGO\s*CONSUMI\s*FATTURATI|consumo\s*periodo)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
             r'(?:consumo\s*fatturato\s*per\s*il\s*periodo\s*di\s*riferimento)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
@@ -260,30 +222,24 @@ def estrai_consumi(testo: str) -> str:
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)?',
             r'(?:volume\s*acqua\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)?'
         ]
-
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and match.group(1):
                 try:
                     consumo = float(match.group(1).replace('.', '').replace(',', '.'))
                     unita = match.group(2).lower() if match.group(2) else ""
-                    
-                    # Normalizza unità di misura
                     if not unita:
                         if "energia" in pattern.lower() or "kwh" in pattern.lower():
                             unita = "kWh"
                         elif "gas" in pattern.lower() or "mc" in pattern.lower() or "m³" in pattern.lower():
                             unita = "mc"
                         elif "acqua" in pattern.lower():
-                            unita = "mc"  # Default per acqua
-                    
+                            unita = "mc"
                     return f"{consumo:.2f} {unita}"
                 except ValueError:
                     continue
-
     except Exception as e:
-        st.error(f"Errore durante l'estrazione dei consumi: {str(e)}")
-
+        logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}")
     return "N/D"
 
 def estrai_dati_cliente(testo: str) -> str:
@@ -294,15 +250,13 @@ def estrai_dati_cliente(testo: str) -> str:
             r'(?:p\.\s*iva|partita\s*iva)\s*[:\-]?\s*([0-9]{11})',
             r'(?:cf|codice\s*fiscale)\s*[:\-]?\s*([A-Z0-9]{16})'
         ]
-        
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-                
         return "N/D"
     except Exception as e:
-        st.error(f"Errore durante l'estrazione dei dati cliente: {str(e)}")
+        logger.error(f"Errore durante l'estrazione dei dati cliente: {str(e)}")
         return "N/D"
 
 def estrai_dati(file) -> Dict[str, str]:
@@ -310,14 +264,14 @@ def estrai_dati(file) -> Dict[str, str]:
     testo = estrai_testo_da_pdf(file)
     if not testo:
         return None
-        
+
     societa = estrai_societa(testo)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo)
     indirizzo = estrai_indirizzo(testo)
     dati_cliente = estrai_dati_cliente(testo)
-    
+
     return {
         "Società": societa,
         "Periodo di Riferimento": estrai_periodo(testo),
@@ -334,7 +288,6 @@ def estrai_dati(file) -> Dict[str, str]:
 def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
     """Crea un file Excel in memoria con i dati estratti."""
     try:
-        # Definisci l'ordine delle colonne
         colonne_ordinate = [
             "Società",
             "Periodo di Riferimento",
@@ -347,25 +300,24 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
             "Consumi",
             "File"
         ]
-        
+
         df = pd.DataFrame([d for d in dati_lista if d is not None])
-        
+
         if len(df) == 0:
             st.warning("Nessun dato valido da esportare")
             return None
-            
-        # Riordina le colonne secondo l'ordine specificato
+
         colonne_presenti = [col for col in colonne_ordinate if col in df.columns]
         df = df[colonne_presenti]
-        
+
         output = BytesIO()
-        
+
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Report')
-            
+
             workbook = writer.book
             worksheet = writer.sheets['Report']
-            
+
             header_format = workbook.add_format({
                 'bold': True,
                 'text_wrap': True,
@@ -374,65 +326,60 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
                 'font_color': 'white',
                 'border': 1
             })
-            
+
             data_format = workbook.add_format({
                 'text_wrap': True,
                 'valign': 'top',
                 'border': 1
             })
-            
+
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)
-                
+
             for row in range(1, len(df)+1):
                 for col in range(len(df.columns)):
                     worksheet.write(row, col, df.iloc[row-1, col], data_format)
-            
-            # Auto-adjust column widths
+
             for i, col in enumerate(df.columns):
                 max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
                 worksheet.set_column(i, i, max_len)
-                
+
         output.seek(0)
         return output
-        
+
     except Exception as e:
-        st.error(f"Errore durante la creazione del file Excel: {str(e)}")
+        logger.error(f"Errore durante la creazione del file Excel: {str(e)}")
         return None
 
 def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     """Mostra un grafico comparativo dei consumi se disponibili."""
     try:
         df = pd.DataFrame([d for d in dati_lista if d is not None])
-        
+
         if len(df) == 0:
             return
-            
+
         if "Consumi" not in df.columns:
             return
-            
-        # Estrai valore numerico dai consumi
+
         df['Consumo_val'] = df['Consumi'].str.extract(r'([\d\.]+)')[0].astype(float)
         df = df.dropna(subset=['Consumo_val'])
-        
+
         if len(df) < 2:
             return
-            
+
         st.subheader("📈 Confronto Consumi")
-        
-        # Determina unità di misura
+
         unita = df['Consumi'].iloc[0].split()[-1] if len(df['Consumi'].iloc[0].split()) > 1 else ""
-        
-        # Prepara dati per il grafico
+
         chart_data = df[['File', 'Consumo_val']].rename(columns={'Consumo_val': 'Consumo'})
         chart_data = chart_data.set_index('File')
-        
-        # Crea grafico
+
         st.bar_chart(chart_data)
-        
+
         if unita:
             st.caption(f"Unità di misura: {unita}")
-            
+
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
@@ -441,15 +388,15 @@ def main():
     st.markdown("""
     **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
     """)
-    
+
     with st.sidebar:
         st.header("Impostazioni")
         mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
         raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
-    
+
     file_pdf_list = st.file_uploader(
-        "Seleziona i file PDF delle bollette", 
-        type=["pdf"], 
+        "Seleziona i file PDF delle bollette",
+        type=["pdf"],
         accept_multiple_files=True,
         help="Puoi selezionare più file contemporaneamente"
     )
@@ -458,27 +405,26 @@ def main():
         risultati = []
         progress_bar = st.progress(0)
         status_text = st.empty()
-        
+
         for i, file in enumerate(file_pdf_list):
             status_text.text(f"Elaborazione {i+1}/{len(file_pdf_list)}: {file.name[:30]}...")
-            progress_bar.progress((i + 1) / len(file_pdf_list))
-            
+            progress_bar.progress((i + 1) / len(file_pdf_list)))
+
             try:
                 dati = estrai_dati(file)
                 if dati:
                     risultati.append(dati)
             except Exception as e:
-                st.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
+                logger.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
                 continue
-        
+
         progress_bar.empty()
-        
+
         if risultati:
             status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
-            
-            # Mostra tabella risultati
+
             st.subheader("📋 Dati Estratti")
-            
+
             if raggruppa_societa:
                 societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
                 if societa_disponibili:
@@ -487,7 +433,7 @@ def main():
                         options=["Tutte"] + societa_disponibili,
                         index=0
                     )
-                    
+
                     if societa != "Tutte":
                         risultati_filtrati = [d for d in risultati if d['Società'] == societa]
                     else:
@@ -497,23 +443,20 @@ def main():
                     st.warning("Nessuna società riconosciuta nei documenti")
             else:
                 risultati_filtrati = risultati
-            
+
             st.dataframe(
                 pd.DataFrame(risultati_filtrati),
                 use_container_width=True,
                 hide_index=True
             )
-            
-            # Mostra grafici se richiesto
+
             if mostra_grafici and risultati_filtrati:
                 mostra_grafico_consumi(risultati_filtrati)
-            
-            # Pulsanti esportazione
+
             st.subheader("📤 Esporta Dati")
             col1, col2 = st.columns(2)
-            
+
             with col1:
-                # Esporta Excel
                 excel_data = crea_excel(risultati_filtrati)
                 if excel_data:
                     st.download_button(
@@ -523,9 +466,8 @@ def main():
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         help="Scarica i dati in formato Excel"
                     )
-            
+
             with col2:
-                # Esporta CSV
                 if risultati_filtrati:
                     csv = pd.DataFrame(risultati_filtrati).to_csv(index=False, sep=';').encode('utf-8')
                     st.download_button(
@@ -537,7 +479,7 @@ def main():
                     )
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
-    
+
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; font-size: 14px; color: gray;">

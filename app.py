@@ -46,7 +46,7 @@ SOCIETA_CONOSCIUTE = {
     "AQUEDOTTO DEL FIORA": r"AQUEDOTTO\s*DEL\s*FIORA",
     "ASA LIVORNO": r"ASA\s*LIVORNO",
     "ENEL ENERGIA": r"ENEL\s*ENERGIA",
-    "ENI GAS E LUCE": r"ENI\s*GAS\s*E\s*LUCE",
+    "NUOVE ACQUE": r"NUOVE\s*ACQUE",
     "GAIA SPA": r"GAIA\s*SPA",
     "PUBLIACQUA": r"PUBLIACQUA",
     "EDISON ENERGIA": r"EDISON\s*ENERGIA"
@@ -204,10 +204,10 @@ def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""
     try:
         patterns = [
+            r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'(?:numero\s*fattura|n°\s*fattura|fattura\s*n\.?)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'[Ff]attura\s+(?:elektronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
-            r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'Numero Fattura\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)', # Aggiunto il pattern per "Numero Fattura"
             r'\b\d{2,4}[\/\-]\d{3,8}\b',
             r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
@@ -247,33 +247,70 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
     return "N/D", "€"
 
 def estrai_consumi(testo: str) -> str:
-    """Estrae i consumi con pattern più completi."""
+    """Estrae i consumi con pattern completi e adattati alle bollette fornite."""
     try:
+        # Pattern principali basati sulle bollette analizzate
         patterns = [
-            r'(?:consumo|consumo fatturato|totale consumi fatturati)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
-            r'(?:consumo\s*fatturato\s*per\s*il\s*periodo\s*di\s*riferimento)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
-            r'(?:energia\s*(?:attiva|fatturata)\s*complessiva)\s*[:\-]?\s*([\d\.,]+)\s*(kWh)?',
-            r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)?',
-            r'(?:volume\s*acqua\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)?'
+            # Pattern per bollette acqua (es. Acque SpA, Publiacqua, GAIA)
+            r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:consumo\s*medio\s*annuo)\s*[\d]{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            
+            # Pattern per tabelle di consumo (es. DETTAGLIO CONSUMI)
+            r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
+            r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
+            
+            # Pattern generici per diversi tipi di fornitura
+            r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
+            r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
+            r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            
+            # Pattern per sezioni specifiche trovate nelle bollette
+            r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$'
         ]
+
         for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
+            matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)
+            for match in matches:
                 try:
-                    consumo = float(match.group(1).replace('.', '').replace(',', '.'))
-                    unita = match.group(2).lower() if match.group(2) else ""
-                    if not unita:
-                        if "energia" in pattern.lower() or "kwh" in pattern.lower():
+                    # Gestione dei valori con separatori decimali diversi
+                    valore = match.group(1).replace('.', '').replace(',', '.')
+                    consumo = float(valore)
+                    
+                    # Determinazione automatica dell'unità di misura
+                    if len(match.groups()) > 1 and match.group(2):
+                        unita = match.group(2).lower()
+                    else:
+                        # Inferenza dell'unità dal contesto
+                        if "acqua" in pattern.lower() or "mc" in pattern.lower() or "m³" in pattern.lower():
+                            unita = "mc"
+                        elif "energia" in pattern.lower() or "kwh" in pattern.lower():
                             unita = "kWh"
-                        elif "gas" in pattern.lower() or "mc" in pattern.lower() or "m³" in pattern.lower():
+                        elif "gas" in pattern.lower():
                             unita = "mc"
-                        elif "acqua" in pattern.lower():
-                            unita = "mc"
+                        else:
+                            unita = "mc"  # Default per acqua
+                    
                     return f"{consumo:.2f} {unita}"
-                except ValueError:
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Errore nel processare il match: {match.group() if match else 'N/A'}")
                     continue
+
+        # Casi particolari dalle bollette analizzate
+        if "CONSUMO FATTURATO" in testo:
+            match = re.search(r'CONSUMO FATTURATO\s+(\d+)\s*mc', testo)
+            if match:
+                return f"{match.group(1)}.00 mc"
+        
+        if "Consumo fatturato" in testo:
+            match = re.search(r'Consumo fatturato\s+(\d+)\s*mc', testo)
+            if match:
+                return f"{match.group(1)}.00 mc"
+
     except Exception as e:
-        logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}")
+        logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
+    
     return "N/D"
 
 def estrai_dati_cliente(testo: str) -> str:

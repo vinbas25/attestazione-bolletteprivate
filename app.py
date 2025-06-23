@@ -41,15 +41,22 @@ def estrai_societa(testo: str) -> str:
 
     # Utilizza espressioni regolari per trovare pattern comuni
     patterns = [
-        r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|S\.?P\.?A\.?|SRL|GREEN|COMM|ACQUE))\b',
-        r'\b([A-Z]{2,}\s*(?:ENERGIA|POWER|LIGHT|GAS|ACQUA))\b',
-        r'\b(AGSM|A2A|ACQUE|AQUEDOTTO|ASA|FIRENZE|GEAL|GAIA|PUBLIACQUA)\b'
+        r'\b(AGSM\s*AIM\s*ENERGIA|A2A|ACQUE\s*SPA|AQUEDOTTO\s*DEL\s*FIORA|ASA|FIRENZE\s*ACQUE|GEAL|GAIA\s*SPA|PUBLIACQUA\s*SPA)\b',
+        r'\b(?:Società|Fornitore|Emittenza|Gestore|Servizio):?\s*([A-Z\s]+)\b',
+        r'\b(?:S\.?P\.?A\.?|S\.?R\.?L\.?|GREEN|COMM|ACQUE)\s*([A-Z\s]+)\b',
+        r'\b(?:Energia|Acqua|Gas|Servizi|Ambiente)\s*([A-Z\s]+)\b'
     ]
 
     for pattern in patterns:
         match = re.search(pattern, testo, re.IGNORECASE)
         if match:
-            return match.group(0).upper()
+            return match.group(1).strip().upper()
+
+    # Cerca nei primi 500 caratteri del documento, dove spesso si trova il nome della società
+    snippet = testo[:500]
+    for societa in SOCIETA_CONOSCIUTE:
+        if societa.lower() in snippet.lower():
+            return societa
 
     # Se non trova nulla, restituisce "N/D"
     return "N/D"
@@ -177,4 +184,4 @@ if file_pdf_list:
 
 # Footer semplice
 st.markdown("---")
-st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>BY MAR. BASILE VINCENZO</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>Powered by ChatGPT</p>", unsafe_allow_html=True)

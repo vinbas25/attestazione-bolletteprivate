@@ -3,26 +3,27 @@ import fitz  # PyMuPDF
 import re
 import datetime
 
-# Estrae il testo intero dal PDF
+# Legge tutto il testo da un PDF
 def estrai_testo_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     return "".join(p.get_text() for p in doc)
 
-# Trova società (modificare se necessario per altri fornitori)
+# Estrai nome società
 def estrai_societa(testo):
-    m = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
-    return m.group(0).upper() if m else "N/D"
+    match = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
+    return match.group(0).upper() if match else "N/D"
 
 # Estrai periodo
 def estrai_periodo(testo):
-    m = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', testo, re.IGNORECASE)
-    return f"{m.group(1)} - {m.group(2)}" if m else "N/D"
+    match = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', testo, re.IGNORECASE)
+    return f"{match.group(1)} - {match.group(2)}" if match else "N/D"
 
-# Parsing date
+# Mapping mesi
 mesi_map = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12
 }
+
 def parse_date(g, m, y):
     try:
         giorno = int(g)
@@ -33,23 +34,21 @@ def parse_date(g, m, y):
     except:
         return None
 
-# Estrai data fattura (ricerca intelligente)
+# Estrai data fattura
 def estrai_data_fattura(testo):
     patterns = [
-        r'fattura del\s*(\d{1,2}[\/\-\.\s](?:\d{1,2}|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[\/\-\.\s]\d{2,4})',
-        r'data\s+fattura[:\-]?\s*(\d{1,2}[\/\-\.\s]\d{1,2}[\/\-\.\s]\d{2,4})',
-        r'data\s+emissione[:\-]?\s*(\d{1,2}[\/\-\.\s]\d{1,2}[\/\-\.\s]\d{2,4})',
-        r'emissione[:\-]?\s*(\d{1,2}[\/\-\.\s](?:\d{1,2}|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[\/\-\.\s]\d{2,4})',
-        r'documento\s+di\s+chiusura.*?(\d{1,2}[\/\-\.\s]\d{1,2}[\/\-\.\s]\d{2,4})'
+        r'fattura del\s*(\d{1,2}[\/\-\.\s](\w+)[\/\-\.\s](\d{2,4}))',
+        r'data\s+fattura[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
+        r'data\s+emissione[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
+        r'documento\s+di\s+chiusura.*?(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})'
     ]
-    for pattern in patterns:
-        match = re.search(pattern, testo, re.IGNORECASE)
+    for pat in patterns:
+        match = re.search(pat, testo, re.IGNORECASE)
         if match:
-            parts = re.split(r'[\/\-\.\s]+', match.group(1))
-            if len(parts) >= 3:
-                data = parse_date(parts[0], parts[1], parts[2])
-                if data:
-                    return data.strftime("%d/%m/%Y")
+            groups = match.groups()
+            data = parse_date(groups[0], groups[1], groups[2])
+            if data:
+                return data.strftime("%d/%m/%Y")
     # Fallback: prima data numerica
     fallback = re.search(r'(\d{2})[\/\-](\d{2})[\/\-](\d{4})', testo)
     if fallback:
@@ -58,7 +57,7 @@ def estrai_data_fattura(testo):
             return data.strftime("%d/%m/%Y")
     return "N/D"
 
-# Estrai numero fattura (intelligente)
+# Estrai numero fattura
 def estrai_numero_fattura(testo):
     patterns = [
         r'numero\s+fattura\s+elettronica[^:]*[:\s]\s*([A-Z0-9\-\/]+)',
@@ -71,22 +70,21 @@ def estrai_numero_fattura(testo):
         match = re.search(pattern, testo, re.IGNORECASE)
         if match:
             return match.group(1).strip()
-    # fallback: qualsiasi codice simile a una fattura
     match = re.search(r'\b[A-Z]{1,4}[-/]?[0-9]{3,}[-/]?[A-Z0-9]*\b', testo)
     return match.group(0).strip() if match else "N/D"
 
 # Estrai totale bolletta
 def estrai_totale_bolletta(testo):
-    m = re.search(r'Totale\s+bolletta[:\-]?\s*€?\s*([\d\.,]+)', testo, re.IGNORECASE)
-    return m.group(1) if m else "N/D"
+    match = re.search(r'Totale\s+bolletta[:\-]?\s*€?\s*([\d\.,]+)', testo, re.IGNORECASE)
+    return match.group(1) if match else "N/D"
 
-# Estrai consumi fatturati
+# Estrai consumi
 def estrai_consumi(testo):
     testo_upper = testo.upper()
     idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
     if idx == -1:
         return "N/D"
-    snippet = testo_upper[idx:idx+500]
+    snippet = testo_upper[idx:idx+600]
     match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
     if match:
         try:
@@ -95,7 +93,7 @@ def estrai_consumi(testo):
             return "N/D"
     return "N/D"
 
-# Estrazione dati dal file
+# Estrai tutti i dati da un file
 def estrai_dati(file):
     testo = estrai_testo_da_pdf(file)
     return {
@@ -107,29 +105,22 @@ def estrai_dati(file):
         "Via": "",
         "Numero Fattura": estrai_numero_fattura(testo),
         "Totale Bolletta (€)": estrai_totale_bolletta(testo),
-        "File": "",
+        "File": file.name,
         "Consumi": estrai_consumi(testo)
     }
 
-# Mostra in tabella HTML copiabile
-def mostra_tabella(dati):
-    cols = list(dati.keys())
-    vals = list(dati.values())
+# Mostra tabella aggregata
+def mostra_tabella(dati_lista):
+    if not dati_lista:
+        return
+    colonne = list(dati_lista[0].keys())
     html = "<table style='border-collapse:collapse;width:100%'>"
-    html += "<tr>" + "".join(f"<th style='border:1px solid #888;padding:6px'>{c}</th>" for c in cols) + "</tr>"
-    html += "<tr>" + "".join(f"<td style='border:1px solid #888;padding:6px'>{v}</td>" for v in vals) + "</tr>"
+    html += "<tr>" + "".join(f"<th style='border:1px solid #888;padding:6px;background:#eee'>{col}</th>" for col in colonne) + "</tr>"
+    for dati in dati_lista:
+        html += "<tr>" + "".join(f"<td style='border:1px solid #888;padding:6px'>{dati[col]}</td>" for col in colonne) + "</tr>"
     html += "</table>"
-    st.markdown("### 📋 Copia la tabella e incolla in Excel")
+    st.markdown("### 📋 Report finale (puoi copiarlo e incollarlo in Excel):")
     st.markdown(html, unsafe_allow_html=True)
 
 # Streamlit UI
-st.set_page_config(page_title="Estrazione Bolletta", layout="centered")
-st.title("📄 Estrazione Intelligente da Bolletta PDF")
-
-file_pdf = st.file_uploader("Carica una bolletta PDF", type=["pdf"])
-
-if file_pdf:
-    with st.spinner("Elaborazione in corso..."):
-        dati = estrai_dati(file_pdf)
-    st.success("✅ Dati estratti con successo!")
-    mostra_tabella(dati)
+st.set_page_config(page_title="Estrazione Bollette Multiple", layout="_

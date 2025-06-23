@@ -2,12 +2,35 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 
-# --- Funzione per estrarre dati dal PDF ---
+def estrai_consumi(testo):
+    lines = testo.split('\n')
+    consumi_valori = []
+    
+    for i, line in enumerate(lines):
+        if re.search(r'consumi', line, re.IGNORECASE):
+            numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', line)
+            for num in numeri:
+                try:
+                    valore = float(num.replace('.', '').replace(',', '.'))
+                    consumi_valori.append(valore)
+                except:
+                    pass
+            if not numeri:
+                for j in range(i+1, min(i+4, len(lines))):
+                    numeri_succ = re.findall(r'[\d\.]+,\d+|[\d\.]+', lines[j])
+                    for num in numeri_succ:
+                        try:
+                            valore = float(num.replace('.', '').replace(',', '.'))
+                            consumi_valori.append(valore)
+                        except:
+                            pass
+    return round(sum(consumi_valori), 2) if consumi_valori else "N/D"
+
 def estrai_dati_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     testo = "".join(pagina.get_text() for pagina in doc)
 
-    # Nome società (ricerca mirata)
+    # Nome società
     match_societa = re.search(r'\b(AGSM\s*AIM\s*ENERGIA|AGSM\s*ENERGIA|AIM\s*ENERGIA)\b', testo, re.IGNORECASE)
     nome_societa = match_societa.group(1).upper() if match_societa else "N/D"
 
@@ -32,18 +55,8 @@ def estrai_dati_da_pdf(file):
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
-    # Ricerca intelligente consumi (estraggo righe con "consumi" e sommo i numeri)
-    righe = re.findall(r'.{0,30}consumi.{0,50}', testo, re.IGNORECASE)
-    consumi_valori = []
-    for riga in righe:
-        numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', riga)
-        for num in numeri:
-            try:
-                valore = float(num.replace('.', '').replace(',', '.'))
-                consumi_valori.append(valore)
-            except:
-                pass
-    totale_consumi = round(sum(consumi_valori), 2) if consumi_valori else "N/D"
+    # Consumi
+    totale_consumi = estrai_consumi(testo)
 
     return {
         "File": "",
@@ -58,19 +71,15 @@ def estrai_dati_da_pdf(file):
         "Consumi": totale_consumi
     }
 
-# --- Funzione per mostrare tabella HTML copiabile ---
 def mostra_tabella_html(dati):
     html = "<table style='border-collapse: collapse; width: 100%;'>"
-    # Header
     html += "<tr>" + "".join(f"<th style='border: 1px solid black; padding: 4px;'>{col}</th>" for col in dati.keys()) + "</tr>"
-    # Values
     html += "<tr>" + "".join(f"<td style='border: 1px solid black; padding: 4px;'>{val}</td>" for val in dati.values()) + "</tr>"
     html += "</table>"
 
     st.markdown("### 📋 Copia la tabella qui sotto e incolla direttamente in Excel")
     st.markdown(html, unsafe_allow_html=True)
 
-# --- Streamlit app ---
 st.set_page_config(page_title="Report Bolletta", layout="centered")
 st.title("📄 Report Estratto da Bolletta PDF")
 
@@ -79,7 +88,5 @@ file_pdf = st.file_uploader("Carica la bolletta in PDF", type=["pdf"])
 if file_pdf:
     with st.spinner("Estrazione dati in corso..."):
         dati = estrai_dati_da_pdf(file_pdf)
-
     st.success("✅ Dati estratti correttamente!")
-
     mostra_tabella_html(dati)

@@ -262,16 +262,11 @@ def estrai_indirizzo(testo: str) -> str:
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?((?:VIA|CORSO)\s.*?\d{5}\s\w{2})',
         ]
         
-        # Prova prima il pattern specifico per GAIA
-        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
-        if match_gaia:
-            return f"{match_gaia.group(1).strip()} {match_gaia.group(2).strip()}"
+       
 
-        # Poi prova il pattern specifico per Nuove Acque
-        match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
-        if match_nuove_acque:
-            indirizzo = match_nuove_acque.group(1).strip()
-            return indirizzo
+        # Prova prima il pattern specifico per GAIA 
+        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL) if match_gaia: 
+                      return f"{match_gaia.group(1).strip()}"
         
         # Poi prova il pattern specifico per Fiora
         match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
@@ -304,7 +299,7 @@ if __name__ == "__main__":
     testo_fiora = """
     CODICE UTENZA: 200001748008
     DATI FORNITURA
-    VIA DELLA VITTORIA 9
+    VIA DELLA VITTORIA 8
     58019 PORTO SANTO STEFANO GR
     TIPOLOGIA MISURATORE: Minuratore
     """

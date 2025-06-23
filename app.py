@@ -226,6 +226,7 @@ def estrai_indirizzo(testo: str) -> str:
             r'CORSO[\s\n]+(.*?)\n\d{5}\s\w{2}',
             r'C\.SO[\s\n]+(.*?)\n\d{5}\s\w{2}',
             r'C\.SO[\s]+(.*?\d{5}\s\w{2})',
+            r'DATI FORNITURA.*?C\.F\.\s+\d+\s+([^\n]+)\s+(\d{5}\s+[A-Z]{2})',
         ]
         
         for pattern in patterns:

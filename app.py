@@ -23,7 +23,7 @@ def estrai_dati_da_pdf(file):
 def crea_attestazione(dati):
     doc = Document()
     doc.add_heading("Attestazione di Consumo", level=1)
-    doc.add_paragraph(f"Numero fattura elettronica valida ai fini fiscali: {dati['numero']}")
+    doc.add_paragraph(f"Numero fattura elettronica valida ai fini fiscali:: {dati['numero']}")
     doc.add_paragraph(f"Documento di chiusura del: {dati['data']}")
     doc.add_paragraph(f"Totale Bolletta: € {dati['importo']}")
 

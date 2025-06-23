@@ -169,3 +169,39 @@ if uploaded_files:
         st.error("❌ Nessun dato valido estratto dai PDF caricati.")
 else:
     st.info("Carica almeno un file PDF per iniziare.")
+    # Interfaccia utente
+st.title("📊 Analizzatore Bollette PDF")
+
+st.markdown("Carica uno o più file PDF di bollette per estrarre automaticamente i dati principali.")
+
+uploaded_files = st.file_uploader("📎 Seleziona uno o più file PDF", type=["pdf"], accept_multiple_files=True)
+
+if uploaded_files:
+    dati_estratti = []
+    
+    with st.spinner("📄 Estrazione dati in corso..."):
+        for file in uploaded_files:
+            dati = estrai_dati(file)
+            if dati:
+                dati_estratti.append(dati)
+
+    if dati_estratti:
+        df = pd.DataFrame(dati_estratti)
+
+        st.success(f"✅ Dati estratti da {len(dati_estratti)} file.")
+        st.dataframe(df, use_container_width=True)
+
+        # Esporta in Excel
+        excel_buffer = crea_excel(dati_estratti)
+        if excel_buffer:
+            st.download_button(
+                label="📥 Scarica Excel",
+                data=excel_buffer,
+                file_name="bollette_estratte.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.warning("❗ Nessun dato valido è stato estratto dai file PDF.")
+else:
+    st.info("📤 Carica almeno un file PDF per iniziare.")
+

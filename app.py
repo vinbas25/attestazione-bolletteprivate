@@ -9,15 +9,10 @@ def estrai_testo_da_pdf(file):
     return testo
 
 def estrai_societa(testo):
-    patterns = [
-        r'\bAGSM\s*AIM\s*ENERGIA\b',
-        r'\bAGSM\s*ENERGIA\b',
-        r'\bAIM\s*ENERGIA\b',
-    ]
-    for p in patterns:
-        m = re.search(p, testo, re.IGNORECASE)
-        if m:
-            return m.group(0).upper()
+    # Cerca esattamente AGSM AIM ENERGIA, caso insensibile
+    m = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
+    if m:
+        return m.group(0).upper()
     return "N/D"
 
 def estrai_periodo(testo):
@@ -25,6 +20,27 @@ def estrai_periodo(testo):
     if m:
         return f"{m.group(1)} - {m.group(2)}"
     return "N/D"
+
+def parse_date_string(g, mese, anno):
+    mesi = {
+        "gennaio":1, "febbraio":2, "marzo":3, "aprile":4, "maggio":5, "giugno":6,
+        "luglio":7, "agosto":8, "settembre":9, "ottobre":10, "novembre":11, "dicembre":12
+    }
+    try:
+        giorno = int(g)
+        if mese.isdigit():
+            mese_num = int(mese)
+        else:
+            mese_num = mesi.get(mese.lower(), 0)
+        if len(anno) == 2:
+            anno_num = 2000 + int(anno)
+        else:
+            anno_num = int(anno)
+        if mese_num == 0:
+            return None
+        return datetime.date(anno_num, mese_num, giorno)
+    except:
+        return None
 
 def estrai_data_fattura_intelligente(testo):
     testo_lower = testo.lower()
@@ -40,57 +56,40 @@ def estrai_data_fattura_intelligente(testo):
         "data"
     ]
 
-    pattern_date = r'([0-3]?\d)[/\-\s]([01]?\d|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[/\-\s]?(\d{2,4})'
+    # Pattern date, include gg/mm/yyyy, gg-mm-yyyy, 23 giugno 2025, ecc.
+    pattern_date = r'([0-3]?\d)[/\-\s]([0-9]{1,2}|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)[/\-\s]?(\d{2,4})'
 
-    mesi = {
-        "gennaio":1, "febbraio":2, "marzo":3, "aprile":4, "maggio":5, "giugno":6,
-        "luglio":7, "agosto":8, "settembre":9, "ottobre":10, "novembre":11, "dicembre":12
-    }
+    # Trovo tutte le date nel testo con posizione
+    tutte_date = []
+    for m in re.finditer(pattern_date, testo_lower):
+        data = parse_date_string(m.group(1), m.group(2), m.group(3))
+        if data:
+            tutte_date.append((data, m.start()))
 
-    for keyword in keywords:
-        for match in re.finditer(keyword, testo_lower):
-            start = match.start()
-            blocco = testo_lower[start:start+100]
+    if not tutte_date:
+        return "N/D"
 
-            for m in re.finditer(pattern_date, blocco):
-                g, mese, anno = m.groups()
+    # Trova la posizione delle keywords nel testo
+    pos_keywords = []
+    for kw in keywords:
+        for m in re.finditer(kw, testo_lower):
+            pos_keywords.append(m.start())
 
-                try:
-                    giorno = int(g)
-                    if mese.isdigit():
-                        mese_num = int(mese)
-                    else:
-                        mese_num = mesi.get(mese, 0)
+    # Se nessuna keyword trovata, prendi la prima data in assoluto
+    if not pos_keywords:
+        return tutte_date[0][0].strftime("%d/%m/%Y")
 
-                    if len(anno) == 2:
-                        anno_num = 2000 + int(anno)
-                    else:
-                        anno_num = int(anno)
+    # Cerco la data più vicina a una keyword
+    distanza_minima = None
+    data_scelta = None
+    for data, pos_data in tutte_date:
+        for pos_kw in pos_keywords:
+            distanza = abs(pos_data - pos_kw)
+            if (distanza_minima is None) or (distanza < distanza_minima):
+                distanza_minima = distanza
+                data_scelta = data
 
-                    if mese_num == 0:
-                        continue
-
-                    dt = datetime.date(anno_num, mese_num, giorno)
-                    return dt.strftime("%d/%m/%Y")
-
-                except:
-                    continue
-
-    m_generale = re.search(r'([0-3]?\d)[/\-]([01]?\d)[/\-](\d{4})', testo_lower)
-    if m_generale:
-        try:
-            giorno = int(m_generale.group(1))
-            mese = int(m_generale.group(2))
-            anno = int(m_generale.group(3))
-            dt = datetime.date(anno, mese, giorno)
-            return dt.strftime("%d/%m/%Y")
-        except:
-            pass
-
-    return "N/D"
-
-def estrai_data_chiusura(testo):
-    return estrai_data_fattura_intelligente(testo)
+    return data_scelta.strftime("%d/%m/%Y") if data_scelta else "N/D"
 
 def estrai_numero_fattura(testo):
     m = re.search(r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE)
@@ -106,13 +105,10 @@ def estrai_totale_bolletta(testo):
 def estrai_consumi_da_riquadro(testo):
     testo_upper = testo.upper()
     consumi_valore = "N/D"
-
     idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
     if idx == -1:
         return consumi_valore
-
     snippet = testo_upper[idx:idx+500]
-
     m = re.search(r'TOTALE COMPLESSIVO DI\s*[:\-]?\s*([\d\.,]+)', snippet, re.IGNORECASE)
     if m:
         numero_str = m.group(1)
@@ -120,7 +116,6 @@ def estrai_consumi_da_riquadro(testo):
             consumi_valore = float(numero_str.replace('.', '').replace(',', '.'))
         except:
             consumi_valore = "N/D"
-
     return consumi_valore
 
 def estrai_consumi_intelligente(testo):
@@ -128,11 +123,10 @@ def estrai_consumi_intelligente(testo):
 
 def estrai_dati_da_pdf(file):
     testo = estrai_testo_da_pdf(file)
-
     dati = {
         "Società": estrai_societa(testo),
         "Periodo di Riferimento": estrai_periodo(testo),
-        "Data": estrai_data_chiusura(testo),
+        "Data": estrai_data_fattura_intelligente(testo),
         "POD": "",
         "Dati Cliente": "",
         "Via": "",
@@ -141,7 +135,6 @@ def estrai_dati_da_pdf(file):
         "File": "",
         "Consumi": estrai_consumi_intelligente(testo)
     }
-
     return dati
 
 def mostra_tabella_html(dati):
@@ -149,11 +142,8 @@ def mostra_tabella_html(dati):
     html += "<tr>" + "".join(f"<th style='border: 1px solid black; padding: 6px;'>{col}</th>" for col in dati.keys()) + "</tr>"
     html += "<tr>" + "".join(f"<td style='border: 1px solid black; padding: 6px;'>{val}</td>" for val in dati.values()) + "</tr>"
     html += "</table>"
-
     st.markdown("### 📋 Copia la tabella qui sotto e incolla direttamente in Excel")
     st.markdown(html, unsafe_allow_html=True)
-
-# -- STREAMLIT UI --
 
 st.set_page_config(page_title="Report Bolletta Intelligente", layout="centered")
 st.title("📄 Report Estratto da Bolletta PDF (Estrazione Intelligente)")

@@ -225,6 +225,13 @@ def estrai_indirizzo(testo: str) -> str:
     try:
         # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
         pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
+
+         # 2. Pattern per Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
+        pattern_fiora = (
+            r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
+            r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
+            r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'  # Via + civico
+        )
         
         # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
         patterns = [

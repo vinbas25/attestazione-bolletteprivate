@@ -264,7 +264,11 @@ def estrai_indirizzo(testo: str) -> str:
         
        
 
-        # Prova prima il pattern specifico per GAIA match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL) if match_gaia: return f"{match_gaia.group(1).strip()} {match_gaia.group(2).strip()}"
+        # Prova prima il pattern specifico per GAIA 
+        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL) 
+        if match_gaia: 
+            
+            return f"{match_gaia.group(1).strip()} {match_gaia.group(2).strip()}"
         
         # Poi prova il pattern specifico per Fiora
         match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)

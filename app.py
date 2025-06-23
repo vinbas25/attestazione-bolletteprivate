@@ -133,28 +133,22 @@ def estrai_data_fattura(testo: str) -> str:
     """Estrae la data della fattura con più pattern e fallback."""
     try:
         patterns = [
-            r'data\s*fattura\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
-            r'fattura\s*del\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
-            r'emissione\s*:\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
-            r'documento\s*emesso\s*in\s*data\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})'
+            r'(?:data\s*fattura|fattura\s*del|emissione)\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
+            r'(?:data\s*emissione|emesso\s*il)\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
+            r'\b(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})\b',
+            r'\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b',
+            r'\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})\b',
+            r'\b(?:al|il)\s+(\d{1,2})\s+(\w+)\s+(\d{4})\b'
         ]
 
         for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match and len(match.groups()) == 3:
-                data = parse_date(match.group(1), match.group(2), match.group(3))
-                if data:
-                    return data.strftime("%d/%m/%Y")
+            matches = re.finditer(pattern, testo, re.IGNORECASE)
+            for match in matches:
+                if len(match.groups()) == 3:
+                    data = parse_date(match.group(1), match.group(2), match.group(3))
+                    if data:
+                        return data.strftime("%d/%m/%Y")
 
-        # Fallback per date in formato ISO
-        iso_match = re.search(r'(\d{4}-\d{2}-\d{2})', testo)
-        if iso_match:
-            try:
-                return datetime.datetime.strptime(iso_match.group(1), "%Y-%m-%d").strftime("%d/%m/%Y")
-            except ValueError:
-                pass
-
-        return "N/D"
     except Exception as e:
         st.error(f"Errore durante l'estrazione della data: {str(e)}")
         return "N/D"
@@ -220,26 +214,21 @@ def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""
     try:
         patterns = [
-            r'numero\s*fattura\s*elettronica\s*[:\-]?\s*([A-Z0-9]{6,20})',
-            r'n°\s*fattura\s*[:\-]?\s*([A-Z0-9]{6,20})',
-            r'fattura\s*n\.?\s*([A-Z0-9]{6,20})',
-            r'documento\s*[:\-]?\s*([A-Z0-9]{6,20})',
-            r'rif\.\s*fattura\s*[:\-]?\s*([A-Z0-9]{6,20})'
+            r'(?:numero\s*fattura|n°\s*fattura|fattura\s*n\.?)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'(?:rif\.|riferimento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'[Ff]attura\s+(?:elettronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'\b\d{2,4}[\/\-]\d{3,8}\b',
+            r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
 
         for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
-                num = match.group(1).strip()
-                # Validazione base del numero fattura
-                if len(num) >= 6 and any(c.isdigit() for c in num):
+            matches = re.finditer(pattern, testo, re.IGNORECASE)
+            for match in matches:
+                num = match.group(1) if match.groups() else match.group(0)
+                num = num.strip()
+                if len(num) >= 5 and any(c.isdigit() for c in num):
                     return num
-
-        # Fallback per numeri fattura complessi
-        complex_pattern = r'\b(?:[A-Z]{2,5})[-/]?\d{4,}[-/]?\d*\b'
-        match = re.search(complex_pattern, testo)
-        if match:
-            return match.group(0).strip()
 
     except Exception as e:
         st.error(f"Errore durante l'estrazione del numero della fattura: {str(e)}")
@@ -261,7 +250,6 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             if match and len(match.groups()) >= 1:
                 importo = match.group(1).replace('.', '').replace(',', '.')
                 try:
-                    # Validazione numerica
                     float(importo)
                     valuta = match.group(2) if len(match.groups()) >= 2 and match.group(2) else "€"
                     return importo, valuta
@@ -273,10 +261,10 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
 
     return "N/D", "€"
 
-def estrai_consumi(testo: str) -> Tuple[str, str]:
-    """Estrae i consumi e l'unità di misura con più precisione."""
+def estrai_consumi(testo: str) -> str:
+    """Estrae i consumi unificati in un unico campo."""
     try:
-        # Cerca prima i consumi energetici (kWh)
+        # Cerca consumi energetici (kWh)
         energy_patterns = [
             r'(?:consumo|energia)\s*(?:fatturato|complessivo)\s*[:\-]?\s*([\d\.,]+)\s*(kWh)?',
             r'totale\s*energia\s*(?:attiva|fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh)?',
@@ -288,8 +276,7 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
             if match and match.group(1):
                 try:
                     consumo = float(match.group(1).replace('.', '').replace(',', '.'))
-                    unita = match.group(2).lower() if match.group(2) is not None else "kWh"
-                    return f"{consumo:.2f}", unita
+                    return f"{consumo:.2f} kWh"
                 except ValueError:
                     continue
 
@@ -305,12 +292,7 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
             if match and match.group(1):
                 try:
                     consumo = float(match.group(1).replace('.', '').replace(',', '.'))
-                    unita = "mc"
-                    if match.group(2):
-                        unita = match.group(2).lower()
-                        if "metri cubi" in unita:
-                            unita = "mc"
-                    return f"{consumo:.2f}", unita
+                    return f"{consumo:.2f} mc"
                 except ValueError:
                     continue
 
@@ -326,19 +308,34 @@ def estrai_consumi(testo: str) -> Tuple[str, str]:
             if match and match.group(1):
                 try:
                     consumo = float(match.group(1).replace('.', '').replace(',', '.'))
-                    unita = "mc"
-                    if match.group(2):
-                        unita = match.group(2).lower()
-                        if "litri" in unita:
-                            unita = "l"
-                    return f"{consumo:.2f}", unita
+                    unita = "mc" if not match.group(2) else "l" if "litri" in match.group(2).lower() else "mc"
+                    return f"{consumo:.2f} {unita}"
                 except ValueError:
                     continue
 
     except Exception as e:
         st.error(f"Errore durante l'estrazione dei consumi: {str(e)}")
 
-    return "N/D", "N/D"
+    return "N/D"
+
+def estrai_dati_cliente(testo: str) -> str:
+    """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""
+    try:
+        patterns = [
+            r'(?:codice\s*cliente|cliente\s*n°)\s*[:\-]?\s*([A-Z0-9]{6,12})',
+            r'(?:p\.\s*iva|partita\s*iva)\s*[:\-]?\s*([0-9]{11})',
+            r'(?:cf|codice\s*fiscale)\s*[:\-]?\s*([A-Z0-9]{16})'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, testo, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+                
+        return "N/D"
+    except Exception as e:
+        st.error(f"Errore durante l'estrazione dei dati cliente: {str(e)}")
+        return "N/D"
 
 def estrai_dati(file) -> Dict:
     """Estrae tutti i dati da un singolo file PDF."""
@@ -349,32 +346,54 @@ def estrai_dati(file) -> Dict:
     societa, tipo_fornitura = estrai_societa(testo)
     pod, pdr = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
-    consumo, unita_misura = estrai_consumi(testo)
+    consumi = estrai_consumi(testo)
+    indirizzo = estrai_indirizzo(testo)
+    dati_cliente = estrai_dati_cliente(testo)
     
     return {
-        "File": file.name,
         "Società": societa,
         "Tipo Fornitura": tipo_fornitura,
         "Periodo di Riferimento": estrai_periodo(testo),
         "Data Fattura": estrai_data_fattura(testo),
         "POD": pod,
         "PDR": pdr,
-        "Indirizzo": estrai_indirizzo(testo),
+        "Dati Cliente": dati_cliente,
+        "Indirizzo": indirizzo,
         "Numero Fattura": estrai_numero_fattura(testo),
         f"Totale ({valuta})": totale,
-        f"Consumo ({unita_misura})": consumo,
-        "Note": ""
+        "File": file.name,
+        "Consumi": consumi
     }
 
 def crea_excel(dati_lista: List[Dict]) -> Optional[BytesIO]:
     """Crea un file Excel in memoria con i dati estratti."""
     try:
+        # Definisci l'ordine delle colonne
+        colonne_ordinate = [
+            "Società",
+            "Tipo Fornitura",
+            "Periodo di Riferimento",
+            "Data Fattura",
+            "POD",
+            "PDR",
+            "Dati Cliente",
+            "Indirizzo",
+            "Numero Fattura",
+            "Totale (€)",
+            "File",
+            "Consumi"
+        ]
+        
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         
         if len(df) == 0:
             st.warning("Nessun dato valido da esportare")
             return None
             
+        # Riordina le colonne secondo l'ordine specificato
+        colonne_presenti = [col for col in colonne_ordinate if col in df.columns]
+        df = df[colonne_presenti]
+        
         output = BytesIO()
         
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -425,13 +444,11 @@ def mostra_grafico_consumi(dati_lista: List[Dict]):
         if len(df) == 0:
             return
             
-        # Estrai colonne consumo e unità
-        consumo_col = next((c for c in df.columns if c.startswith("Consumo")), None)
-        if not consumo_col:
+        if "Consumi" not in df.columns:
             return
             
-        # Prova a convertire in numerico
-        df['Consumo_val'] = pd.to_numeric(df[consumo_col].str.replace('[^\d.]', '', regex=True), errors='coerce')
+        # Estrai valore numerico dai consumi
+        df['Consumo_val'] = df['Consumi'].str.extract(r'([\d\.]+)')[0].astype(float)
         df = df.dropna(subset=['Consumo_val'])
         
         if len(df) < 2:
@@ -440,7 +457,7 @@ def mostra_grafico_consumi(dati_lista: List[Dict]):
         st.subheader("📈 Confronto Consumi")
         
         # Determina unità di misura
-        unita = consumo_col.split('(')[-1].rstrip(')') if '(' in consumo_col else ""
+        unita = df['Consumi'].iloc[0].split()[-1] if len(df['Consumi'].iloc[0].split()) > 1 else ""
         
         # Prepara dati per il grafico
         chart_data = df[['File', 'Consumo_val']].rename(columns={'Consumo_val': 'Consumo'})
@@ -499,7 +516,7 @@ def main():
             st.subheader("📋 Dati Estratti")
             
             if raggruppa_societa:
-                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D")))
                 if societa_disponibili:
                     societa = st.selectbox(
                         "Filtra per società",

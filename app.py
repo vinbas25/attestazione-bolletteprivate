@@ -215,6 +215,7 @@ def estrai_indirizzo(testo: str) -> str:
     """
     Estrae l'indirizzo di fornitura da una bolletta, supportando diversi formati tra cui:
     - Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
+    - Nuove Acque S.p.A. (formato "Indirizzo fornitura" seguito da indirizzo completo)
     - GAIA S.p.A. (formato "INTESTAZIONE" seguito da indirizzo su due righe)
     - Altri formati comuni con varianti di intestazione
     
@@ -225,6 +226,10 @@ def estrai_indirizzo(testo: str) -> str:
         Indirizzo estratto (es. "VIA DELLA VITTORIA 8") o "N/D" se non trovato.
     """
     try:
+       
+        # Pattern specifico per Nuove Acque S.p.A. (indirizzo dopo "Indirizzo fornitura")
+        pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
+        
         # 1. Pattern specifico per GAIA S.p.A. (indirizzo su due righe dopo "INTESTAZIONE")
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
@@ -314,6 +319,14 @@ if __name__ == "__main__":
     CAP: 00100
     """
     print("Test generico:", estrai_indirizzo(testo_generico))  # Output: "Viale Europa 12/A"
+
+# Test con il testo della bolletta fornita
+if __name__ == "__main__":
+    testo_bolletta = """
+    Intestatario contratto REPARTO T.L.A. TOSCANA GUARDIA DI FINANZA FIRENZE - VIA VALFONDA 17 - 50123 FIRENZE FI - P.I.V.A. 80017930480
+    Indirizzo fornitura VIA G.GARIBALDI 247 - 52100 AREZZO AR
+    """
+    print("Indirizzo estratto:", estrai_indirizzo(testo_bolletta))  # Output: "VIA G.GARIBALDI 247"
 
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""

@@ -254,12 +254,12 @@ if __name__ == "__main__":
     testo_bolletta = """
     INTESTAZIONE
     GUARDIA DI FINANZA, C.F. 80017930480
-    CORSO ROMA 26
-    51016 MONTECATINI TERME PT
+    PZA G.MENCONI 6
+    54033 MARINA DI CARRARA MS
     """
     
     indirizzo = estrai_indirizzo(testo_bolletta)
-    print(f"Indirizzo estratto: {indirizzo}")  # Output atteso: "CORSO ROMA 26"
+    print(f"Indirizzo estratto: {indirizzo}")  # Output atteso: "PZA G.MENCONI 6"
 
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""

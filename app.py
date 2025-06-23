@@ -107,6 +107,7 @@ def estrai_periodo(testo: str) -> str:
             # Pattern generico come fallback
             r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)

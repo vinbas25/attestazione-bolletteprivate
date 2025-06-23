@@ -269,7 +269,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def estrai_consumi(testo: str) -> str:
+ef estrai_consumi(testo: str) -> str:
     """Estrae i consumi fatturati da testo OCR o PDF, gestendo vari formati e fallback."""
     try:
         # Blocchi prioritari basati su intestazioni note (come RIEPILOGO CONSUMI FATTURATI)
@@ -289,23 +289,21 @@ def estrai_consumi(testo: str) -> str:
                 except:
                     pass  # Continua con i pattern generali
 
-        # Pattern generali e multi-bolletta
+        # Pattern generali e multi-bolletta (aggiunti i nuovi pattern per casi come "329 mc")
         patterns = [
+            # Pattern specifico per bollette tipo Nuove Acque (es. "Consumo\n329 mc")
+            r'Consumo\s*\n\s*(\d+)\s*mc',  # Cattura "329" dopo "Consumo" e a capo
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',  # Es: "Consumo nel periodo di 141 giorni: 299 mc"
+            r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',  # Cattura consumo da tabelle
+            r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',  # Fallback per stime
+            r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',  # Fallback esplicito
             r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
             r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
             r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:consumo\s*medio\s*annuo)\s*\d{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
             r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
-            r'(?:acqua\s*fatturata|volume\s*acqua)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi|l|litri)',
-            r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
-            r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$',
-            r'Consumo\s*\n([\d,]+)\s*mc',
-            r'Consumo\s*\n\s*(\d+)\s*mc',
         ]
 
         for pattern in patterns:
@@ -319,24 +317,15 @@ def estrai_consumi(testo: str) -> str:
                     if len(match.groups()) > 1 and match.group(2):
                         unita = match.group(2).lower()
                     else:
-                        if "kwh" in pattern.lower():
-                            unita = "kWh"
-                        elif "energia" in pattern.lower():
-                            unita = "kWh"
-                        elif "litri" in pattern.lower() or "l" in pattern.lower():
-                            unita = "litri"
-                        elif "smc" in pattern.lower():
-                            unita = "Smc"
-                        else:
-                            unita = "mc"
+                        unita = "mc"  # Default per i nuovi pattern
 
                     return f"{consumo:.2f} {unita}"
                 except (ValueError, IndexError):
                     logger.debug(f"Errore nel processare il match: {match.group() if match else 'N/A'}")
                     continue
 
-        # Fallback semplice
-        fallback = re.search(r'consumo\s+fatturato\s+(\d+)\s*mc', testo, re.IGNORECASE)
+        # Fallback per casi estremi (es. testo con formattazione irregolare)
+        fallback = re.search(r'(\d+)\s*mc\s+Importo\s+da\s+pagare', testo)  # Cattura "329 mc" prima di "Importo da pagare"
         if fallback:
             return f"{float(fallback.group(1)):.2f} mc"
 

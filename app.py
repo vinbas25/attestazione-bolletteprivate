@@ -202,6 +202,7 @@ def estrai_indirizzo(testo: str) -> str:
             r'(?:Indirizzo|Servizio erogato in|Luogo di fornitura|Indirizzo di fornitura|Indirizzo fornitura)\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.)\s+[A-Za-zÀ-ÿ\s]+?\s*\d{1,5}(?:\s*[A-Za-z]?)?)',
             r'DATI FORNITURA.*?VIA\s(.*?\d{5}\s\w{2})',
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA[\s\n]+(.*?\d{5}\s\w{2})',
+            r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',
         ]
         
         for pattern in patterns:

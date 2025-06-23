@@ -10,11 +10,21 @@ def estrai_dati_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     testo = "".join(pagina.get_text() for pagina in doc)
 
-    # Regex per i dati
-    nome_societa = re.search(r'(?:Intestatario|Società|Cliente|Ragione sociale)\s*:\s*(.+)', testo, re.IGNORECASE)
-    numero_fattura = re.search(r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE)
-    data_chiusura = re.search(r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
-    totale_bolletta = re.search(r'Totale\s+(?:bolletta|da\s+pagare).*?:?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE)
+    # Estrazioni con regex
+    nome_societa = re.search(
+        r'(?:Intestatario|Ragione\s+sociale|Cliente|Società)\s*[:\-]?\s*(.+)', testo, re.IGNORECASE
+    )
+    numero_fattura = re.search(
+        r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE
+    )
+    data_chiusura = re.search(
+        r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
+    )
+
+    # Totale per Word (non mostrato nel report finale)
+    totale_bolletta = re.search(
+        r'Totale\s+(?:bolletta|da\s+pagare).*?:?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
+    )
 
     return {
         "nome_societa": nome_societa.group(1).strip() if nome_societa else "N/D",
@@ -23,7 +33,7 @@ def estrai_dati_da_pdf(file):
         "totale": totale_bolletta.group(1) if totale_bolletta else "N/D"
     }
 
-# --- Creazione documento Word ---
+# --- Creazione attestazione Word (facoltativa) ---
 def crea_attestazione(dati):
     doc = Document()
     doc.add_heading("Attestazione di Consumo", level=1)
@@ -36,32 +46,32 @@ def crea_attestazione(dati):
     buffer.seek(0)
     return buffer
 
-# --- Streamlit App ---
-st.set_page_config(page_title="Attestazione Bolletta", layout="centered")
-st.title("📄 Generatore di Attestazioni da Bolletta PDF")
+# --- Interfaccia Streamlit ---
+st.set_page_config(page_title="Report Bolletta PDF", layout="centered")
+st.title("📄 Generatore Report Bolletta")
 
-file_pdf = st.file_uploader("Carica la bolletta in PDF", type=["pdf"])
+file_pdf = st.file_uploader("Carica una bolletta in PDF", type=["pdf"])
 
 if file_pdf:
-    with st.spinner("Estrazione dati dalla bolletta..."):
+    with st.spinner("Estrazione dati in corso..."):
         dati = estrai_dati_da_pdf(file_pdf)
 
-    st.success("✅ Dati estratti correttamente!")
+    st.success("✅ Dati estratti con successo!")
 
-    # Mostra i dati in formato tabellare (copiabile in Excel)
-    df_report = pd.DataFrame([{
+    # --- Mostra report in tabella copiabile in Excel ---
+    df = pd.DataFrame([{
         "Nome Società": dati["nome_societa"],
         "Documento di Chiusura del (Data Fattura)": dati["data_chiusura"],
         "Numero Fattura": dati["numero_fattura"]
     }])
 
-    st.subheader("📊 Report finale (copiabile in Excel)")
-    st.dataframe(df_report, use_container_width=True)
+    st.subheader("📊 Report Finale (puoi copiarlo in Excel)")
+    st.dataframe(df, use_container_width=True)
 
-    # Download del file Word
+    # --- Download DOCX opzionale ---
     buffer = crea_attestazione(dati)
     st.download_button(
-        label="📥 Scarica Attestazione",
+        label="📥 Scarica Attestazione Word",
         data=buffer,
         file_name="attestazione.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"

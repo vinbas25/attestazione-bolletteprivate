@@ -7,7 +7,7 @@ def estrai_dati_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     testo = "".join(pagina.get_text() for pagina in doc)
 
-    # Nome società (case insensitive, cercando più varianti)
+    # Nome società (ricerca mirata)
     match_societa = re.search(r'\b(AGSM\s*AIM\s*ENERGIA|AGSM\s*ENERGIA|AIM\s*ENERGIA)\b', testo, re.IGNORECASE)
     nome_societa = match_societa.group(1).upper() if match_societa else "N/D"
 
@@ -16,34 +16,33 @@ def estrai_dati_da_pdf(file):
         r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE
     )
 
-    # Data di chiusura (solo la data)
+    # Data di chiusura
     data_chiusura = re.search(
         r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
 
-    # Periodo di riferimento "dal ... al ..."
+    # Periodo di riferimento
     periodo = re.search(
         r'dal\s+([0-9]{2}/[0-9]{2}/[0-9]{4})\s+al\s+([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
     periodo_rif = f"{periodo.group(1)} - {periodo.group(2)}" if periodo else "N/D"
 
-    # Totale bolletta (es. "Totale bolletta: 123,45" o "Totale bolletta - 123,45")
+    # Totale bolletta
     totale_bolletta = re.search(
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
-    # Consumi fatturati (regex flessibile, somma tutti i valori)
-    consumi_trovati = re.findall(
-        r'consumi\s+fatturati.*?([\d.,]+)\s*(?:kWh|smc)?', testo, re.IGNORECASE
-    )
+    # Ricerca intelligente consumi (estraggo righe con "consumi" e sommo i numeri)
+    righe = re.findall(r'.{0,30}consumi.{0,50}', testo, re.IGNORECASE)
     consumi_valori = []
-    for c in consumi_trovati:
-        try:
-            # Trasformo "1.234,56" -> "1234.56"
-            valore = float(c.replace(".", "").replace(",", "."))
-            consumi_valori.append(valore)
-        except:
-            continue
+    for riga in righe:
+        numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', riga)
+        for num in numeri:
+            try:
+                valore = float(num.replace('.', '').replace(',', '.'))
+                consumi_valori.append(valore)
+            except:
+                pass
     totale_consumi = round(sum(consumi_valori), 2) if consumi_valori else "N/D"
 
     return {

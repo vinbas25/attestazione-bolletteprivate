@@ -2,45 +2,47 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 import datetime
-
-# Estrai testo da PDF
-def estrai_testo_da_pdf(file):
-    doc = fitz.open(stream=file.read(), filetype="pdf")
-    return "".join(page.get_text() for page in doc)
-
-# Estrai società
-def estrai_societa(testo):
-    match = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
-    return match.group(0).upper() if match else "N/D"
-
-# Estrai periodo di riferimento
-def estrai_periodo(testo):
-    match = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', testo, re.IGNORECASE)
-    return f"{match.group(1)} - {match.group(2)}" if match else "N/D"
+from typing import Optional, Dict, List
 
 # Mappa mesi in italiano
-mesi_map = {
+MESI_MAP = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12
 }
 
-# Parsing data: accetta giorno, mese (numero o nome), anno
-def parse_date(g, m, y):
+def estrai_testo_da_pdf(file) -> str:
+    """Estrae il testo da un file PDF."""
+    try:
+        doc = fitz.open(stream=file.read(), filetype="pdf")
+        return "".join(page.get_text() for page in doc)
+    except Exception as e:
+        st.error(f"Errore durante l'estrazione del testo dal PDF: {e}")
+        return ""
+
+def estrai_societa(testo: str) -> str:
+    """Estrae la società dal testo."""
+    match = re.search(r'\bAGSM\s*AIM\s*ENERGIA\b', testo, re.IGNORECASE)
+    return match.group(0).upper() if match else "N/D"
+
+def estrai_periodo(testo: str) -> str:
+    """Estrae il periodo di riferimento dal testo."""
+    match = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', testo, re.IGNORECASE)
+    return f"{match.group(1)} - {match.group(2)}" if match else "N/D"
+
+def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
+    """Parsing data: accetta giorno, mese (numero o nome), anno."""
     try:
         giorno = int(g)
-        if m.isdigit():
-            mese = int(m)
-        else:
-            mese = mesi_map.get(m.lower(), 0)
+        mese = int(m) if m.isdigit() else MESI_MAP.get(m.lower(), 0)
         anno = int(y) if len(y) == 4 else 2000 + int(y)
-        if mese == 0:
-            return None
-        return datetime.date(anno, mese, giorno)
-    except:
+        if 1 <= mese <= 12:
+            return datetime.date(anno, mese, giorno)
+    except ValueError:
         return None
+    return None
 
-# Estrai data fattura con pattern multipli e fallback
-def estrai_data_fattura(testo):
+def estrai_data_fattura(testo: str) -> str:
+    """Estrae la data della fattura dal testo."""
     patterns = [
         r'fattura del\s*(\d{1,2})[\/\-\.\s](\w+)[\/\-\.\s](\d{2,4})',
         r'data\s+fattura[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
@@ -51,12 +53,10 @@ def estrai_data_fattura(testo):
         match = re.search(pat, testo, re.IGNORECASE)
         if match:
             groups = match.groups()
-            # Qui differenzio tra pattern con mese come nome o numero
             if len(groups) == 3:
                 data = parse_date(groups[0], groups[1], groups[2])
                 if data:
                     return data.strftime("%d/%m/%Y")
-    # Fallback generico per data in formato dd/mm/yyyy o dd-mm-yyyy
     fallback = re.search(r'(\d{2})[\/\-](\d{2})[\/\-](\d{4})', testo)
     if fallback:
         data = parse_date(fallback.group(1), fallback.group(2), fallback.group(3))
@@ -64,8 +64,8 @@ def estrai_data_fattura(testo):
             return data.strftime("%d/%m/%Y")
     return "N/D"
 
-# Estrai numero fattura con vari pattern e fallback
-def estrai_numero_fattura(testo):
+def estrai_numero_fattura(testo: str) -> str:
+    """Estrae il numero della fattura dal testo."""
     patterns = [
         r'numero\s+fattura\s+elettronica[^:]*[:\s]\s*([A-Z0-9\-\/]+)',
         r'numero\s+fattura[:\s\-]*([A-Z0-9\-\/]+)',
@@ -77,17 +77,18 @@ def estrai_numero_fattura(testo):
         match = re.search(pattern, testo, re.IGNORECASE)
         if match:
             return match.group(1).strip()
-    # Fallback: cerca un codice fattura tipico (es. ABC-1234 o simili)
     match = re.search(r'\b[A-Z]{1,4}[-/]?[0-9]{3,}[-/]?[A-Z0-9]*\b', testo)
     return match.group(0).strip() if match else "N/D"
 
-# Estrai totale bolletta
-def estrai_totale_bolletta(testo):
+def estrai_totale_bolletta(testo: str) -> str:
+    """Estrae il totale della bolletta dal testo."""
     match = re.search(r'Totale\s+bolletta[:\-]?\s*€?\s*([\d\.,]+)', testo, re.IGNORECASE)
-    return match.group(1).replace('.', '').replace(',', '.') if match else "N/D"
+    if match:
+        return match.group(1).replace('.', '').replace(',', '.')
+    return "N/D"
 
-# Estrai consumi
-def estrai_consumi(testo):
+def estrai_consumi(testo: str) -> str:
+    """Estrae i consumi dal testo."""
     testo_upper = testo.upper()
     idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
     if idx == -1:
@@ -98,12 +99,12 @@ def estrai_consumi(testo):
         try:
             valore = match.group(1).replace('.', '').replace(',', '.')
             return float(valore)
-        except:
+        except ValueError:
             return "N/D"
     return "N/D"
 
-# Estrai dati da singolo file PDF
-def estrai_dati(file):
+def estrai_dati(file) -> Dict:
+    """Estrae i dati da un singolo file PDF."""
     testo = estrai_testo_da_pdf(file)
     return {
         "Società": estrai_societa(testo),
@@ -118,8 +119,8 @@ def estrai_dati(file):
         "Consumi": estrai_consumi(testo)
     }
 
-# Mostra tabella finale in Streamlit
-def mostra_tabella(dati_lista):
+def mostra_tabella(dati_lista: List[Dict]) -> None:
+    """Mostra la tabella finale in Streamlit."""
     if not dati_lista:
         return
     colonne = list(dati_lista[0].keys())
@@ -134,9 +135,7 @@ def mostra_tabella(dati_lista):
 # Streamlit UI
 st.set_page_config(page_title="Report Consumi", layout="wide")
 st.title("📊 Report Consumi")
-
 file_pdf_list = st.file_uploader("Carica una o più bollette PDF", type=["pdf"], accept_multiple_files=True)
-
 if file_pdf_list:
     risultati = []
     with st.spinner("Estrazione in corso..."):
@@ -148,4 +147,4 @@ if file_pdf_list:
 
 # Footer semplice
 st.markdown("---")
-st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>Powered Mar. Vincenzo Basile</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;font-size:14px;color:gray;'>Powered by ChatGPT</p>", unsafe_allow_html=True)

@@ -305,6 +305,9 @@ def estrai_consumi(testo: str) -> str:
             r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$',
             r'Consumo\s*\n([\d,]+)\s*mc',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
+            r'Consumo\s*\n\s*(\d+)\s*mc',
         ]
 
         for pattern in patterns:

@@ -246,21 +246,25 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
 def estrai_consumi(testo: str) -> str:
     """Estrae i consumi con pattern completi e adattati alle bollette fornite."""
     try:
         # Pattern principali basati sulle bollette analizzate
-        patterns = patterns = [
+        patterns = [
             # Pattern specifico per bollette con valore dettagliato in Smc
-            r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d\.,]+)',
             r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
-            
+
             # Pattern specifico per bollette GAIA
             r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
 
             # Pattern generali
             r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:consumo\s*medio\s*annuo)\s*[\d]{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:consumo\s*medio\s*annuo)\s*\d{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
             r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
@@ -275,39 +279,33 @@ def estrai_consumi(testo: str) -> str:
             matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 try:
-                    # Gestione dei valori con separatori decimali diversi
-                    valore = match.group(1).replace('.', '').replace(',', '.')
-                    consumo = float(valore)
-                    
+                    valore_raw = match.group(1)
+                    valore_normalizzato = valore_raw.replace('.', '').replace(',', '.')
+                    consumo = float(valore_normalizzato)
+
                     # Determinazione automatica dell'unità di misura
                     if len(match.groups()) > 1 and match.group(2):
                         unita = match.group(2).lower()
                     else:
-                        # Inferenza dell'unità dal contesto
-                        if "acqua" in pattern.lower() or "mc" in pattern.lower() or "m³" in pattern.lower():
-                            unita = "mc"
-                        elif "energia" in pattern.lower() or "kwh" in pattern.lower():
+                        # Inferenza basata sul pattern
+                        if "kwh" in pattern.lower():
                             unita = "kWh"
-                        elif "gas" in pattern.lower():
-                            unita = "mc"
+                        elif "energia" in pattern.lower():
+                            unita = "kWh"
+                        elif "litri" in pattern.lower() or "l" in pattern.lower():
+                            unita = "litri"
                         else:
-                            unita = "mc"  # Default per acqua
-                    
+                            unita = "mc"  # Default: metri cubi
+
                     return f"{consumo:.2f} {unita}"
                 except (ValueError, IndexError) as e:
                     logger.debug(f"Errore nel processare il match: {match.group() if match else 'N/A'}")
                     continue
 
-        # Casi particolari dalle bollette analizzate
-        if "CONSUMO FATTURATO" in testo:
-            match = re.search(r'CONSUMO FATTURATO\s+(\d+)\s*mc', testo)
-            if match:
-                return f"{match.group(1)}.00 mc"
-        
-        if "Consumo fatturato" in testo:
-            match = re.search(r'Consumo fatturato\s+(\d+)\s*mc', testo)
-            if match:
-                return f"{match.group(1)}.00 mc"
+        # Casi speciali fallback
+        fallback = re.search(r'consumo\s+fatturato\s+(\d+)\s*mc', testo, re.IGNORECASE)
+        if fallback:
+            return f"{float(fallback.group(1)):.2f} mc"
 
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)

@@ -7,6 +7,26 @@ import logging
 from typing import Optional, Dict, List, Tuple
 from io import BytesIO
 
+# CONFIGURAZIONE LAYOUT E STILE STREAMLIT
+st.set_page_config(layout="wide")
+
+st.markdown("""
+    <style>
+        /* Nasconde menu, header e footer */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        
+        /* Riduce padding per sfruttare tutto lo spazio */
+        .main .block-container {
+            padding-top: 1rem;
+            padding-right: 1rem;
+            padding-left: 1rem;
+            padding-bottom: 1rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Configurazione del logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

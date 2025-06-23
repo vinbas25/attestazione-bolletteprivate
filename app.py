@@ -181,6 +181,13 @@ def estrai_pod_pdr(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
     return "N/D"
 
+import re
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
+
 def estrai_indirizzo(testo: str) -> str:
     """
     Tenta di estrarre l'indirizzo del cliente da un testo utilizzando regex.
@@ -202,11 +209,11 @@ def estrai_indirizzo(testo: str) -> str:
             r'(?:Indirizzo|Servizio erogato in|Luogo di fornitura|Indirizzo di fornitura|Indirizzo fornitura)\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.)\s+[A-Za-zÀ-ÿ\s]+?\s*\d{1,5}(?:\s*[A-Za-z]?)?)',
             r'DATI FORNITURA.*?VIA\s(.*?\d{5}\s\w{2})',
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA[\s\n]+(.*?\d{5}\s\w{2})',
-            r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',
+            r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',  # Original pattern from your example
         ]
         
         for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
+            match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
                 indirizzo = match.group(1).strip()
                 # Pulizia aggiuntiva dell'indirizzo
@@ -218,6 +225,20 @@ def estrai_indirizzo(testo: str) -> str:
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}", exc_info=True)
         return "N/D"
+
+# Example usage
+if __name__ == "__main__":
+    text = """
+    DATI FORNITURA
+    CODICE UNIVOCO UFFICIO B8819D
+    GUARDIA DI FINANZA
+    C.F. 80017930480
+    VIA MANARA VALGIMIGLI 1
+    56124 PISA PI
+    """
+    
+    indirizzo = estrai_indirizzo(text)
+    print(f"Indirizzo estratto: {indirizzo}")  # Output: "MANARA VALGIMIGLI 1"
 
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""

@@ -102,6 +102,11 @@ def estrai_periodo(testo: str) -> str:
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
+
+    r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*',  # Sezione di intestazione
+    r'(?:.*\n)*?',  # Salta righe opzionali (non greedy)
+    r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',  # Via + civico
+
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)

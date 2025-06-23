@@ -333,9 +333,6 @@ def estrai_dati_cliente(testo: str) -> str:
     """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""
     try:
         patterns = [
-            r'(?:codice\s*cliente|cliente\s*n°)\s*[:\-]?\s*([A-Z0-9]{6,12})',
-            r'(?:p\.\s*iva|partita\s*iva)\s*[:\-]?\s*([0-9]{11})',
-            r'(?:cf|codice\s*fiscale)\s*[:\-]?\s*([A-Z0-9]{16})',
             r'(?:Numero\s*Contatore|Contatore)[\s:]*([0-9]{8,9})',
             r'(?:Matricola|Contatore|S/N)[\s:]*([A-Z0-9]{14,15})'
         ]

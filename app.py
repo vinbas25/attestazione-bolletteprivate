@@ -10,7 +10,7 @@ def estrai_dati_da_pdf(file):
     for pagina in doc:
         testo += pagina.get_text()
 
-    numero = re.search(r'Bolletta\s+n°\s*(\d+)', testo)
+    fattura = re.search(r'Numero\s+fattura\s+.*?:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE)
     data = re.search(r'Data\s+emissione[:\s]*(\d{2}/\d{2}/\d{4})', testo)
     importo = re.search(r'Totale\s+da\s+pagare[:\s]*€?\s*([\d.,]+)', testo)
 

@@ -264,12 +264,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import re
-import logging
-
-logger = logging.getLogger(__name__)
-
-ef estrai_consumi(testo: str) -> str:
+def estrai_consumi(testo: str) -> str:
     """Estrae i consumi fatturati da testo OCR o PDF, gestendo vari formati e fallback."""
     try:
         # Blocchi prioritari basati su intestazioni note (come RIEPILOGO CONSUMI FATTURATI)

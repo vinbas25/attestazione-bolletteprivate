@@ -123,4 +123,16 @@ def mostra_tabella(dati_lista):
     st.markdown(html, unsafe_allow_html=True)
 
 # Streamlit UI
-st.set_page_config(page_title="Estrazione Bollette Multiple", layout="_
+st.set_page_config(page_title="Estrazione Bollette Multiple", layout="wide")
+st.title("📄 Estrazione da Bollette PDF Multiple")
+
+file_pdf_list = st.file_uploader("Carica una o più bollette PDF", type=["pdf"], accept_multiple_files=True)
+
+if file_pdf_list:
+    risultati = []
+    with st.spinner("Estrazione in corso..."):
+        for file in file_pdf_list:
+            dati = estrai_dati(file)
+            risultati.append(dati)
+    st.success(f"✅ Elaborati {len(risultati)} file.")
+    mostra_tabella(risultati)

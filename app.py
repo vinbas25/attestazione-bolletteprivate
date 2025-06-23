@@ -1,4 +1,4 @@
-fimport streamlit as st
+import streamlit as st
 import fitz  # PyMuPDF
 import re
 import datetime

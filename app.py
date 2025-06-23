@@ -102,14 +102,6 @@ def estrai_periodo(testo: str) -> str:
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
             r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
-            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
-            r'Consumo nel periodo di \d+ giorni:\s*(\d+)\s*mc',
-            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(?:mc|m³|metri\s*cubi)',
-            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
-            r'(?:Letture e Consumi|Contatore n\.\s*\d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
-            r'^(?!.*(?:Periodo|Scadenza)).*?\b(\d+)\s*mc\b',
-            r'Consumo\s*\n([\d,]+)\s*mc',
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
@@ -311,7 +303,15 @@ def estrai_consumi(testo: str) -> str:
             r'(?:consumi\s*energetici|energia\s*fatturata)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|MWh)',
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:periodo\s*di\s*riferimento[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-            r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$'
+            r'(?:letture\s*e\s*consumi[^\n]*\n.*?\bconsumo\s*)([\d\.,]+)\s*$',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:Letture e Consumi|Contatore n\. \d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
+            r'Consumo nel periodo di \d+ giorni:\s*(\d+)\s*mc',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*(?:mc|m³|metri\s*cubi)',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
+            r'(?:Letture e Consumi|Contatore n\.\s*\d+).*?(\d{2}/\d{2}/\d{4}).*?(\d+)\s*mc.*?(\d+)\s*mc',
+            r'^(?!.*(?:Periodo|Scadenza)).*?\b(\d+)\s*mc\b',
+            r'Consumo\s*\n([\d,]+)\s*mc',
         ]
 
         for pattern in patterns:

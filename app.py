@@ -35,17 +35,19 @@ class EstrazioneDati:
                     return societa
 
             patterns = [
-                r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|S\.?P\.?A\.?|SRL|GREEN|COMM|ACQUE))\b',
-                r'\b([A-Z]{2,}\s*(?:ENERGIA|POWER|LIGHT|GAS|ACQUA))\b',
-                r'\b(AGSM|A2A|ACQUE|AQUEDOTTO|ASA|FIRENZE|GEAL|GAIA|PUBLIACQUA)\b'
+                r'\b(AGSM\s*AIM\s*ENERGIA|A2A|ACQUE\s*SPA|AQUEDOTTO\s*DEL\s*FIORA|ASA|FIRENZE\s*ACQUE|GEAL|GAIA\s*SPA|PUBLIACQUA\s*SPA)\b',
+                r'\b(?:Società|Fornitore|Emittenza|Gestore|Servizio):?\s*([A-Z\s]+)\b',
+                r'\b(?:S\.?P\.?A\.?|S\.?R\.?L\.?|GREEN|COMM|ACQUE)\s*([A-Z\s]+)\b',
+                r'\b(?:Energia|Acqua|Gas|Servizi|Ambiente)\s*([A-Z\s]+)\b'
             ]
 
             for pattern in patterns:
                 match = re.search(pattern, self.testo, re.IGNORECASE)
                 if match:
-                    return match.group(0).upper()
+                    return match.group(1).strip().upper()
         except Exception as e:
             st.error(f"Errore durante l'estrazione della società: {e}")
+
         return "N/D"
 
     def estrai_periodo(self) -> str:
@@ -56,6 +58,7 @@ class EstrazioneDati:
                 return f"{match.group(1)} - {match.group(2)}"
         except Exception as e:
             st.error(f"Errore durante l'estrazione del periodo: {e}")
+
         return "N/D"
 
     @staticmethod
@@ -69,6 +72,7 @@ class EstrazioneDati:
                 return datetime.date(anno, mese, giorno)
         except ValueError as e:
             st.error(f"Errore durante il parsing della data: {e}")
+
         return None
 
     def estrai_data_fattura(self) -> str:
@@ -97,6 +101,7 @@ class EstrazioneDati:
                     return data.strftime("%d/%m/%Y")
         except Exception as e:
             st.error(f"Errore durante l'estrazione della data della fattura: {e}")
+
         return "N/D"
 
     def estrai_numero_fattura(self) -> str:
@@ -120,6 +125,7 @@ class EstrazioneDati:
                 return match.group(0).strip()
         except Exception as e:
             st.error(f"Errore durante l'estrazione del numero della fattura: {e}")
+
         return "N/D"
 
     def estrai_totale_bolletta(self) -> str:
@@ -130,6 +136,7 @@ class EstrazioneDati:
                 return match.group(1).replace('.', '').replace(',', '.')
         except Exception as e:
             st.error(f"Errore durante l'estrazione del totale della bolletta: {e}")
+
         return "N/D"
 
     def estrai_consumi(self) -> str:
@@ -160,6 +167,25 @@ class EstrazioneDati:
                     return float(valore)
         except Exception as e:
             st.error(f"Errore durante l'estrazione dei consumi: {e}")
+
+        return "N/D"
+
+    def estrai_pod(self) -> str:
+        """Estrae il numero del misuratore (POD) dal testo."""
+        try:
+            patterns = [
+                r'POD[:\s]?\s*([A-Z0-9\-\s]+)',
+                r'Numero\s+misuratore[:\s]?\s*([A-Z0-9\-\s]+)',
+                r'Codice\s+POD[:\s]?\s*([A-Z0-9\-\s]+)'
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, self.testo, re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione del POD: {e}")
+
         return "N/D"
 
 def estrai_testo_da_pdf(file) -> str:
@@ -179,7 +205,7 @@ def estrai_dati(file) -> Dict:
         "Società": estrazione.estrai_societa(),
         "Periodo di Riferimento": estrazione.estrai_periodo(),
         "Data": estrazione.estrai_data_fattura(),
-        "POD": "",
+        "POD": estrazione.estrai_pod(),
         "Dati Cliente": "",
         "Via": "",
         "Numero Fattura": estrazione.estrai_numero_fattura(),

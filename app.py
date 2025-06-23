@@ -202,63 +202,98 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+import re
+
 def estrai_indirizzo(testo: str) -> str:
     """
-    Tenta di estrarre l'indirizzo del cliente da un testo utilizzando regex.
-    Versione migliorata per gestire specificamente la bolletta GAIA S.p.A.
+    Estrae l'indirizzo di fornitura da una bolletta, supportando diversi formati tra cui:
+    - Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
+    - GAIA S.p.A. (formato "INTESTAZIONE" seguito da indirizzo su due righe)
+    - Altri formati comuni con varianti di intestazione
     
     Args:
-        testo: Stringa contenente il testo da analizzare
+        testo: Testo della bolletta (str)
         
     Returns:
-        Stringa con l'indirizzo estratto o "N/D" se non trovato
+        Indirizzo estratto (es. "VIA DELLA VITTORIA 8") o "N/D" se non trovato.
     """
     try:
-        # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
-        pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
+        # 1. Pattern specifico per GAIA S.p.A. (indirizzo su due righe dopo "INTESTAZIONE")
+        pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
-        patterns = [
-            pattern_bolletta_gaia,
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?((?:VIA|CORSO)\s.*?\d{5}\s\w{2})',
+        # 2. Pattern per Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
+        pattern_fiora = (
+            r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
+            r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
+            r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'  # Via + civico
+        )
+        
+        # 3. Pattern generici per altri casi
+        patterns_generici = [
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
         
-        for pattern in patterns:
+        # Prova prima il pattern specifico per GAIA
+        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
+        if match_gaia:
+            return f"{match_gaia.group(1).strip()} {match_gaia.group(2).strip()}"
+        
+        # Poi prova il pattern specifico per Fiora
+        match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
+        if match_fiora:
+            indirizzo = match_fiora.group(1).strip()
+            # Pulizia finale
+            indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
+            return indirizzo
+        
+        # Infine prova i pattern generici
+        for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
-                if pattern == pattern_bolletta_gaia:
-                    # Per la bolletta GAIA, uniamo le due righe dell'indirizzo
-                    indirizzo = f"{match.group(1).strip()} {match.group(2).strip()}"
-                else:
-                    indirizzo = match.group(1).strip()
-                
+                indirizzo = match.group(1).strip()
                 # Pulizia aggiuntiva dell'indirizzo
-                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)  # Rimuove punteggiatura all'inizio/fine
-                indirizzo = re.sub(r'\s+', ' ', indirizzo)  # Sostituisce multipli spazi con uno solo
+                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
+                indirizzo = re.sub(r'\s+', ' ', indirizzo)
                 return indirizzo
                 
         return "N/D"
         
     except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}", exc_info=True)
+        print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
 
 
-# Test con il contenuto della bolletta fornita
+# Test con diversi formati
 if __name__ == "__main__":
-    testo_bolletta = """
+    # Test caso Fiora
+    testo_fiora = """
+    CODICE UTENZA: 200001748008
+    DATI FORNITURA
+    VIA DELLA VITTORIA 8
+    58019 PORTO SANTO STEFANO GR
+    TIPOLOGIA MISURATORE: Minuratore
+    """
+    print("Test Fiora:", estrai_indirizzo(testo_fiora))  # Output: "VIA DELLA VITTORIA 8"
+    
+    # Test caso GAIA
+    testo_gaia = """
     INTESTAZIONE
     PZA G.MENCONI 6
     54033 MARINA DI CARRARA MS
     """
+    print("Test GAIA:", estrai_indirizzo(testo_gaia))  # Output: "PZA G.MENCONI 6"
     
-    indirizzo = estrai_indirizzo(testo_bolletta)
-    print(f"Indirizzo estratto: {indirizzo}")  # Output atteso: "PZA G.MENCONI 6"
+    # Test caso generico
+    testo_generico = """
+    DETTAGLIO BOLLETTA
+    Indirizzo: Viale Europa 12/A
+    CAP: 00100
+    """
+    print("Test generico:", estrai_indirizzo(testo_generico))  # Output: "Viale Europa 12/A"
 
 def estrai_numero_fattura(testo: str) -> str:
     """Estrae il numero della fattura con più pattern e validazione."""

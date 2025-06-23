@@ -2,12 +2,15 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 
-def estrai_consumi(testo):
+def estrai_consumo_fatturato(testo):
     lines = testo.split('\n')
     consumi_valori = []
-    
+
+    pattern = re.compile(r'consumo\s+fatturato', re.IGNORECASE)
+    pattern_plurale = re.compile(r'consumi\s+fatturati', re.IGNORECASE)
+
     for i, line in enumerate(lines):
-        if re.search(r'consumi', line, re.IGNORECASE):
+        if pattern.search(line) or pattern_plurale.search(line):
             numeri = re.findall(r'[\d\.]+,\d+|[\d\.]+', line)
             for num in numeri:
                 try:
@@ -30,33 +33,27 @@ def estrai_dati_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     testo = "".join(pagina.get_text() for pagina in doc)
 
-    # Nome società
     match_societa = re.search(r'\b(AGSM\s*AIM\s*ENERGIA|AGSM\s*ENERGIA|AIM\s*ENERGIA)\b', testo, re.IGNORECASE)
     nome_societa = match_societa.group(1).upper() if match_societa else "N/D"
 
-    # Numero fattura
     numero_fattura = re.search(
         r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE
     )
 
-    # Data di chiusura
     data_chiusura = re.search(
         r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
 
-    # Periodo di riferimento
     periodo = re.search(
         r'dal\s+([0-9]{2}/[0-9]{2}/[0-9]{4})\s+al\s+([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE
     )
     periodo_rif = f"{periodo.group(1)} - {periodo.group(2)}" if periodo else "N/D"
 
-    # Totale bolletta
     totale_bolletta = re.search(
         r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE
     )
 
-    # Consumi
-    totale_consumi = estrai_consumi(testo)
+    totale_consumi = estrai_consumo_fatturato(testo)
 
     return {
         "File": "",

@@ -255,6 +255,7 @@ def estrai_consumi(testo: str) -> str:
             r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:consumo\s*medio\s*annuo)\s*[\d]{4}\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)'
             
             # Pattern per tabelle di consumo (es. DETTAGLIO CONSUMI)
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',

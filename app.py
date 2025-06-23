@@ -252,7 +252,8 @@ def estrai_consumi(testo: str) -> str:
         # Pattern principali basati sulle bollette analizzate
         patterns = patterns = [
             # Pattern specifico per bollette con valore dettagliato in Smc
-            r'totale\s+Smc\s+fatturati\s*[:\-]?\s*([\d\.]+,\d+)\s*Smc',
+            r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d\.,]+)',
+            r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
             
             # Pattern specifico per bollette GAIA
             r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',

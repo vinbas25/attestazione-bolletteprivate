@@ -214,7 +214,7 @@ def estrai_consumi(testo: str) -> str:
     """Estrae i consumi con pattern più completi."""
     try:
         patterns = [
-            r'(?:Totale\s*consumo\s*fatturato|RIEPILOGO\s*CONSUMI\s*FATTURATI|consumi fatturati|totale consumi fatturati|consumo\s*periodo)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
+            r'(?:consumo|consumo fatturato|totale consumi fatturati)\s*(?:[:\-]?\s*)?([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
             r'(?:consumo\s*fatturato\s*per\s*il\s*periodo\s*di\s*riferimento)\s*[:\-]?\s*([\d\.,]+)\s*(kWh|mc|m³|metri\s*cubi|l|litri)?',
             r'(?:energia\s*(?:attiva|fatturata)\s*complessiva)\s*[:\-]?\s*([\d\.,]+)\s*(kWh)?',
             r'(?:gas\s*naturale\s*fatturato)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)?',
@@ -222,7 +222,7 @@ def estrai_consumi(testo: str) -> str:
         ]
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
-            if match and match.group(1):
+            if match:
                 try:
                     consumo = float(match.group(1).replace('.', '').replace(',', '.'))
                     unita = match.group(2).lower() if match.group(2) else ""
@@ -422,10 +422,14 @@ def main():
             else:
                 risultati_filtrati = risultati
 
-            st.dataframe(
-                pd.DataFrame(risultati_filtrati),
+            # Utilizza st.data_editor per una migliore interazione
+            df = pd.DataFrame(risultati_filtrati)
+            st.data_editor(
+                df,
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                disabled=True,
+                key="data_editor"
             )
 
             if mostra_grafici and risultati_filtrati:

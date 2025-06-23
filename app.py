@@ -269,6 +269,12 @@ def estrai_indirizzo(testo: str) -> str:
         if match_gaia: 
             
             return f"{match_gaia.group(1).strip()} {match_gaia.group(2).strip()}"
+            
+            # Prova prima il pattern specifico per Nuove Acque
+        match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
+        if match_nuove_acque:
+            indirizzo = match_nuove_acque.group(1).strip()
+            return indirizzo
         
         # Poi prova il pattern specifico per Fiora
         match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)

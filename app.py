@@ -516,7 +516,7 @@ def main():
             st.subheader("📋 Dati Estratti")
             
             if raggruppa_societa:
-                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D")))
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
                 if societa_disponibili:
                     societa = st.selectbox(
                         "Filtra per società",

@@ -8,12 +8,10 @@ def estrai_testo_da_pdf(file):
     return testo
 
 def estrai_societa(testo):
-    # Provo a trovare società AGSM AIM ENERGIA o varianti comuni
     patterns = [
         r'\bAGSM\s*AIM\s*ENERGIA\b',
         r'\bAGSM\s*ENERGIA\b',
         r'\bAIM\s*ENERGIA\b',
-        # Aggiungi altre varianti se serve
     ]
     for p in patterns:
         m = re.search(p, testo, re.IGNORECASE)
@@ -22,14 +20,12 @@ def estrai_societa(testo):
     return "N/D"
 
 def estrai_periodo(testo):
-    # Cerco pattern "dal dd/mm/yyyy al dd/mm/yyyy"
     m = re.search(r'dal\s+([0-9]{2}/[0-9]{2}/[0-9]{4})\s+al\s+([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
     if m:
         return f"{m.group(1)} - {m.group(2)}"
     return "N/D"
 
 def estrai_data_chiusura(testo):
-    # Data chiusura con pattern "Documento di chiusura ... dd/mm/yyyy"
     m = re.search(r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
     return m.group(1) if m else "N/D"
 
@@ -38,39 +34,34 @@ def estrai_numero_fattura(testo):
     return m.group(1) if m else "N/D"
 
 def estrai_totale_bolletta(testo):
-    # Cerca "Totale bolletta" seguito da numero con o senza simbolo €
     m = re.search(r'Totale\s+bolletta\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE)
     if m:
         return m.group(1)
-    # fallback: cerca solo "Totale" seguito da numero, ma da usare con cautela
     m2 = re.search(r'Totale\s*[:\-]?\s*€?\s*([\d.,]+)', testo, re.IGNORECASE)
     return m2.group(1) if m2 else "N/D"
 
+def estrai_consumi_da_riquadro(testo):
+    testo_upper = testo.upper()
+    consumi_valore = "N/D"
+
+    idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+    if idx == -1:
+        return consumi_valore
+
+    snippet = testo_upper[idx:idx+500]
+
+    m = re.search(r'TOTALE COMPLESSIVO DI\s*[:\-]?\s*([\d\.,]+)', snippet, re.IGNORECASE)
+    if m:
+        numero_str = m.group(1)
+        try:
+            consumi_valore = float(numero_str.replace('.', '').replace(',', '.'))
+        except:
+            consumi_valore = "N/D"
+
+    return consumi_valore
+
 def estrai_consumi_intelligente(testo):
-    # Cerco tutte le occorrenze di "consumo/i fatturato/i"
-    pattern = re.compile(r'consumo\s+fatturato|consumi\s+fatturati', re.IGNORECASE)
-    lines = testo.split('\n')
-    consumi_valori = []
-
-    for i, line in enumerate(lines):
-        if pattern.search(line):
-            # Prendo linee successive e precedenti (max 3 prima e dopo)
-            start = max(0, i - 3)
-            end = min(len(lines), i + 4)
-            blocco = lines[start:end]
-            testo_blocco = " ".join(blocco)
-
-            # Estraggo numeri italiani con separatore migliaia e decimali (es: 1.234,56 o 1234,56)
-            numeri = re.findall(r'\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?', testo_blocco)
-
-            for num in numeri:
-                try:
-                    valore = float(num.replace('.', '').replace(',', '.'))
-                    consumi_valori.append(valore)
-                except:
-                    pass
-
-    return round(sum(consumi_valori), 2) if consumi_valori else "N/D"
+    return estrai_consumi_da_riquadro(testo)
 
 def estrai_dati_da_pdf(file):
     testo = estrai_testo_da_pdf(file)

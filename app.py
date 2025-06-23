@@ -175,6 +175,7 @@ def estrai_numero_fattura(testo: str) -> str:
             r'(?:doc\.|documento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'(?:rif\.|riferimento)\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'[Ff]attura\s+(?:elektronica\s+)?[nN]°?\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
+            r'Numero fattura elettronica valida ai fini fiscali\s*[:\-]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
             r'\b\d{2,4}[\/\-]\d{3,8}\b',
             r'\b[A-Z]{2,5}\s*\d{4,}\/\d{2,}\b'
         ]
@@ -264,14 +265,12 @@ def estrai_dati(file) -> Dict[str, str]:
     testo = estrai_testo_da_pdf(file)
     if not testo:
         return None
-
     societa = estrai_societa(testo)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo)
     indirizzo = estrai_indirizzo(testo)
     dati_cliente = estrai_dati_cliente(testo)
-
     return {
         "Società": societa,
         "Periodo di Riferimento": estrai_periodo(testo),
@@ -300,24 +299,17 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
             "Consumi",
             "File"
         ]
-
         df = pd.DataFrame([d for d in dati_lista if d is not None])
-
         if len(df) == 0:
             st.warning("Nessun dato valido da esportare")
             return None
-
         colonne_presenti = [col for col in colonne_ordinate if col in df.columns]
         df = df[colonne_presenti]
-
         output = BytesIO()
-
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Report')
-
             workbook = writer.book
             worksheet = writer.sheets['Report']
-
             header_format = workbook.add_format({
                 'bold': True,
                 'text_wrap': True,
@@ -326,27 +318,21 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
                 'font_color': 'white',
                 'border': 1
             })
-
             data_format = workbook.add_format({
                 'text_wrap': True,
                 'valign': 'top',
                 'border': 1
             })
-
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)
-
             for row in range(1, len(df)+1):
                 for col in range(len(df.columns)):
                     worksheet.write(row, col, df.iloc[row-1, col], data_format)
-
             for i, col in enumerate(df.columns):
                 max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
                 worksheet.set_column(i, i, max_len)
-
         output.seek(0)
         return output
-
     except Exception as e:
         logger.error(f"Errore durante la creazione del file Excel: {str(e)}")
         return None
@@ -355,31 +341,21 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     """Mostra un grafico comparativo dei consumi se disponibili."""
     try:
         df = pd.DataFrame([d for d in dati_lista if d is not None])
-
         if len(df) == 0:
             return
-
         if "Consumi" not in df.columns:
             return
-
         df['Consumo_val'] = df['Consumi'].str.extract(r'([\d\.]+)')[0].astype(float)
         df = df.dropna(subset=['Consumo_val'])
-
         if len(df) < 2:
             return
-
         st.subheader("📈 Confronto Consumi")
-
         unita = df['Consumi'].iloc[0].split()[-1] if len(df['Consumi'].iloc[0].split()) > 1 else ""
-
         chart_data = df[['File', 'Consumo_val']].rename(columns={'Consumo_val': 'Consumo'})
         chart_data = chart_data.set_index('File')
-
         st.bar_chart(chart_data)
-
         if unita:
             st.caption(f"Unità di misura: {unita}")
-
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
@@ -388,28 +364,23 @@ def main():
     st.markdown("""
     **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
     """)
-
     with st.sidebar:
         st.header("Impostazioni")
         mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
         raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
-
     file_pdf_list = st.file_uploader(
         "Seleziona i file PDF delle bollette",
         type=["pdf"],
         accept_multiple_files=True,
         help="Puoi selezionare più file contemporaneamente"
     )
-
     if file_pdf_list:
         risultati = []
         progress_bar = st.progress(0)
         status_text = st.empty()
-
         for i, file in enumerate(file_pdf_list):
             status_text.text(f"Elaborazione {i+1}/{len(file_pdf_list)}: {file.name[:30]}...")
             progress_bar.progress((i + 1) / len(file_pdf_list))
-
             try:
                 dati = estrai_dati(file)
                 if dati:
@@ -417,14 +388,10 @@ def main():
             except Exception as e:
                 logger.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
                 continue
-
         progress_bar.empty()
-
         if risultati:
             status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
-
             st.subheader("📋 Dati Estratti")
-
             if raggruppa_societa:
                 societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
                 if societa_disponibili:
@@ -433,7 +400,6 @@ def main():
                         options=["Tutte"] + societa_disponibili,
                         index=0
                     )
-
                     if societa != "Tutte":
                         risultati_filtrati = [d for d in risultati if d['Società'] == societa]
                     else:
@@ -443,19 +409,15 @@ def main():
                     st.warning("Nessuna società riconosciuta nei documenti")
             else:
                 risultati_filtrati = risultati
-
             st.dataframe(
                 pd.DataFrame(risultati_filtrati),
                 use_container_width=True,
                 hide_index=True
             )
-
             if mostra_grafici and risultati_filtrati:
                 mostra_grafico_consumi(risultati_filtrati)
-
             st.subheader("📤 Esporta Dati")
             col1, col2 = st.columns(2)
-
             with col1:
                 excel_data = crea_excel(risultati_filtrati)
                 if excel_data:
@@ -466,7 +428,6 @@ def main():
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         help="Scarica i dati in formato Excel"
                     )
-
             with col2:
                 if risultati_filtrati:
                     csv = pd.DataFrame(risultati_filtrati).to_csv(index=False, sep=';').encode('utf-8')
@@ -479,7 +440,6 @@ def main():
                     )
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
-
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; font-size: 14px; color: gray;">

@@ -23,6 +23,145 @@ SOCIETA_CONOSCIUTE = [
     "PUBLIACQUA SPA"
 ]
 
+class EstrazioneDati:
+    def __init__(self, testo: str):
+        self.testo = testo
+
+    def estrai_societa(self) -> str:
+        """Estrae la società dal testo utilizzando tecniche avanzate."""
+        try:
+            for societa in SOCIETA_CONOSCIUTE:
+                if societa.lower() in self.testo.lower():
+                    return societa
+
+            patterns = [
+                r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|S\.?P\.?A\.?|SRL|GREEN|COMM|ACQUE))\b',
+                r'\b([A-Z]{2,}\s*(?:ENERGIA|POWER|LIGHT|GAS|ACQUA))\b',
+                r'\b(AGSM|A2A|ACQUE|AQUEDOTTO|ASA|FIRENZE|GEAL|GAIA|PUBLIACQUA)\b'
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, self.testo, re.IGNORECASE)
+                if match:
+                    return match.group(0).upper()
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione della società: {e}")
+        return "N/D"
+
+    def estrai_periodo(self) -> str:
+        """Estrae il periodo di riferimento dal testo."""
+        try:
+            match = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', self.testo, re.IGNORECASE)
+            if match:
+                return f"{match.group(1)} - {match.group(2)}"
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione del periodo: {e}")
+        return "N/D"
+
+    @staticmethod
+    def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
+        """Parsing data: accetta giorno, mese (numero o nome), anno."""
+        try:
+            giorno = int(g)
+            mese = int(m) if m.isdigit() else MESI_MAP.get(m.lower(), 0)
+            anno = int(y) if len(y) == 4 else 2000 + int(y)
+            if 1 <= mese <= 12:
+                return datetime.date(anno, mese, giorno)
+        except ValueError as e:
+            st.error(f"Errore durante il parsing della data: {e}")
+        return None
+
+    def estrai_data_fattura(self) -> str:
+        """Estrae la data della fattura dal testo."""
+        try:
+            patterns = [
+                r'fattura del\s*(\d{1,2})[\/\-\.\s](\w+)[\/\-\.\s](\d{2,4})',
+                r'data\s+fattura[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
+                r'data\s+emissione[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
+                r'documento\s+di\s+chiusura.*?(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})'
+            ]
+
+            for pat in patterns:
+                match = re.search(pat, self.testo, re.IGNORECASE)
+                if match:
+                    groups = match.groups()
+                    if len(groups) == 3:
+                        data = self.parse_date(groups[0], groups[1], groups[2])
+                        if data:
+                            return data.strftime("%d/%m/%Y")
+
+            fallback = re.search(r'(\d{2})[\/\-](\d{2})[\/\-](\d{4})', self.testo)
+            if fallback:
+                data = self.parse_date(fallback.group(1), fallback.group(2), fallback.group(3))
+                if data:
+                    return data.strftime("%d/%m/%Y")
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione della data della fattura: {e}")
+        return "N/D"
+
+    def estrai_numero_fattura(self) -> str:
+        """Estrae il numero della fattura dal testo."""
+        try:
+            patterns = [
+                r'numero\s+fattura\s+elettronica[^:]*[:\s]\s*([A-Z0-9\-\/]+)',
+                r'numero\s+fattura[:\s\-]*([A-Z0-9\-\/]+)',
+                r'n°\s*fattura[:\s\-]*([A-Z0-9\-\/]+)',
+                r'fattura\s+n\.?\s*([A-Z0-9\-\/]+)',
+                r'fattura\s+([A-Z]{1,3}[0-9]{3,})'
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, self.testo, re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
+
+            match = re.search(r'\b[A-Z]{1,4}[-/]?[0-9]{3,}[-/]?[A-Z0-9]*\b', self.testo)
+            if match:
+                return match.group(0).strip()
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione del numero della fattura: {e}")
+        return "N/D"
+
+    def estrai_totale_bolletta(self) -> str:
+        """Estrae il totale della bolletta dal testo."""
+        try:
+            match = re.search(r'Totale\s+bolletta[:\-]?\s*€?\s*([\d\.,]+)', self.testo, re.IGNORECASE)
+            if match:
+                return match.group(1).replace('.', '').replace(',', '.')
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione del totale della bolletta: {e}")
+        return "N/D"
+
+    def estrai_consumi(self) -> str:
+        """Estrae i consumi dal testo."""
+        try:
+            # Cerca la dicitura originale
+            testo_upper = self.testo.upper()
+            idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+            if idx != -1:
+                snippet = testo_upper[idx:idx+600]
+                match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+                if match:
+                    valore = match.group(1).replace('.', '').replace(',', '.')
+                    return float(valore)
+
+            # Cerca la nuova dicitura "Totale consumo fatturato per il periodo di riferimento"
+            patterns = [
+                r'Totale consumo fatturato per il periodo di riferimento[:\-]?\s*([\d\.,]+)',
+                r'Totale consumo fatturato[:\-]?\s*([\d\.,]+)',
+                r'Consumo totale fatturato[:\-]?\s*([\d\.,]+)',
+                r'Totale fatturato per il periodo[:\-]?\s*([\d\.,]+)'
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, self.testo, re.IGNORECASE)
+                if match:
+                    valore = match.group(1).replace('.', '').replace(',', '.')
+                    return float(valore)
+        except Exception as e:
+            st.error(f"Errore durante l'estrazione dei consumi: {e}")
+        return "N/D"
+
 def estrai_testo_da_pdf(file) -> str:
     """Estrae il testo da un file PDF."""
     try:
@@ -32,161 +171,21 @@ def estrai_testo_da_pdf(file) -> str:
         st.error(f"Errore durante l'estrazione del testo dal PDF: {e}")
         return ""
 
-def estrai_societa(testo: str) -> str:
-    """Estrae la società dal testo utilizzando tecniche avanzate."""
-    try:
-        for societa in SOCIETA_CONOSCIUTE:
-            if societa.lower() in testo.lower():
-                return societa
-
-        patterns = [
-            r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|S\.?P\.?A\.?|SRL|GREEN|COMM|ACQUE))\b',
-            r'\b([A-Z]{2,}\s*(?:ENERGIA|POWER|LIGHT|GAS|ACQUA))\b',
-            r'\b(AGSM|A2A|ACQUE|AQUEDOTTO|ASA|FIRENZE|GEAL|GAIA|PUBLIACQUA)\b'
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
-                return match.group(0).upper()
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione della società: {e}")
-
-    return "N/D"
-
-def estrai_periodo(testo: str) -> str:
-    """Estrae il periodo di riferimento dal testo."""
-    try:
-        match = re.search(r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})', testo, re.IGNORECASE)
-        if match:
-            return f"{match.group(1)} - {match.group(2)}"
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione del periodo: {e}")
-
-    return "N/D"
-
-def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
-    """Parsing data: accetta giorno, mese (numero o nome), anno."""
-    try:
-        giorno = int(g)
-        mese = int(m) if m.isdigit() else MESI_MAP.get(m.lower(), 0)
-        anno = int(y) if len(y) == 4 else 2000 + int(y)
-        if 1 <= mese <= 12:
-            return datetime.date(anno, mese, giorno)
-    except ValueError as e:
-        st.error(f"Errore durante il parsing della data: {e}")
-
-    return None
-
-def estrai_data_fattura(testo: str) -> str:
-    """Estrae la data della fattura dal testo."""
-    try:
-        patterns = [
-            r'fattura del\s*(\d{1,2})[\/\-\.\s](\w+)[\/\-\.\s](\d{2,4})',
-            r'data\s+fattura[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
-            r'data\s+emissione[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})',
-            r'documento\s+di\s+chiusura.*?(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})'
-        ]
-
-        for pat in patterns:
-            match = re.search(pat, testo, re.IGNORECASE)
-            if match:
-                groups = match.groups()
-                if len(groups) == 3:
-                    data = parse_date(groups[0], groups[1], groups[2])
-                    if data:
-                        return data.strftime("%d/%m/%Y")
-
-        fallback = re.search(r'(\d{2})[\/\-](\d{2})[\/\-](\d{4})', testo)
-        if fallback:
-            data = parse_date(fallback.group(1), fallback.group(2), fallback.group(3))
-            if data:
-                return data.strftime("%d/%m/%Y")
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione della data della fattura: {e}")
-
-    return "N/D"
-
-def estrai_numero_fattura(testo: str) -> str:
-    """Estrae il numero della fattura dal testo."""
-    try:
-        patterns = [
-            r'numero\s+fattura\s+elettronica[^:]*[:\s]\s*([A-Z0-9\-\/]+)',
-            r'numero\s+fattura[:\s\-]*([A-Z0-9\-\/]+)',
-            r'n°\s*fattura[:\s\-]*([A-Z0-9\-\/]+)',
-            r'fattura\s+n\.?\s*([A-Z0-9\-\/]+)',
-            r'fattura\s+([A-Z]{1,3}[0-9]{3,})'
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
-                return match.group(1).strip()
-
-        match = re.search(r'\b[A-Z]{1,4}[-/]?[0-9]{3,}[-/]?[A-Z0-9]*\b', testo)
-        if match:
-            return match.group(0).strip()
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione del numero della fattura: {e}")
-
-    return "N/D"
-
-def estrai_totale_bolletta(testo: str) -> str:
-    """Estrae il totale della bolletta dal testo."""
-    try:
-        match = re.search(r'Totale\s+bolletta[:\-]?\s*€?\s*([\d\.,]+)', testo, re.IGNORECASE)
-        if match:
-            return match.group(1).replace('.', '').replace(',', '.')
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione del totale della bolletta: {e}")
-
-    return "N/D"
-
-def estrai_consumi(testo: str) -> str:
-    """Estrae i consumi dal testo."""
-    try:
-        # Cerca la dicitura originale
-        testo_upper = testo.upper()
-        idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
-        if idx != -1:
-            snippet = testo_upper[idx:idx+600]
-            match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
-            if match:
-                valore = match.group(1).replace('.', '').replace(',', '.')
-                return float(valore)
-
-        # Cerca la nuova dicitura "Totale consumo fatturato per il periodo di riferimento"
-        patterns = [
-            r'Totale consumo fatturato per il periodo di riferimento[:\-]?\s*([\d\.,]+)',
-            r'Totale consumo fatturato[:\-]?\s*([\d\.,]+)',
-            r'Consumo totale fatturato[:\-]?\s*([\d\.,]+)',
-            r'Totale fatturato per il periodo[:\-]?\s*([\d\.,]+)'
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
-                valore = match.group(1).replace('.', '').replace(',', '.')
-                return float(valore)
-    except Exception as e:
-        st.error(f"Errore durante l'estrazione dei consumi: {e}")
-
-    return "N/D"
-
 def estrai_dati(file) -> Dict:
     """Estrae i dati da un singolo file PDF."""
     testo = estrai_testo_da_pdf(file)
+    estrazione = EstrazioneDati(testo)
     return {
-        "Società": estrai_societa(testo),
-        "Periodo di Riferimento": estrai_periodo(testo),
-        "Data": estrai_data_fattura(testo),
+        "Società": estrazione.estrai_societa(),
+        "Periodo di Riferimento": estrazione.estrai_periodo(),
+        "Data": estrazione.estrai_data_fattura(),
         "POD": "",
         "Dati Cliente": "",
         "Via": "",
-        "Numero Fattura": estrai_numero_fattura(testo),
-        "Totale Bolletta (€)": estrai_totale_bolletta(testo),
+        "Numero Fattura": estrazione.estrai_numero_fattura(),
+        "Totale Bolletta (€)": estrazione.estrai_totale_bolletta(),
         "File": file.name,
-        "Consumi": estrai_consumi(testo)
+        "Consumi": estrazione.estrai_consumi()
     }
 
 def mostra_tabella(dati_lista: List[Dict]) -> None:

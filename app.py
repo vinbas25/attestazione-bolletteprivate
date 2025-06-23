@@ -304,7 +304,7 @@ if __name__ == "__main__":
     testo_fiora = """
     CODICE UTENZA: 200001748008
     DATI FORNITURA
-    VIA DELLA VITTORIA 8
+    VIA DELLA VITTORIA 9
     58019 PORTO SANTO STEFANO GR
     TIPOLOGIA MISURATORE: Minuratore
     """

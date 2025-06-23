@@ -1,6 +1,7 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import re
+import datetime
 
 def estrai_testo_da_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
@@ -25,9 +26,50 @@ def estrai_periodo(testo):
         return f"{m.group(1)} - {m.group(2)}"
     return "N/D"
 
+def estrai_data_fattura_intelligente(testo):
+    testo_lower = testo.lower()
+
+    patterns = [
+        r'data\s+fattura\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
+        r'data\s+fattura\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
+        r'data\s+emissione\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
+        r'data\s+emissione\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
+        r'documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})',
+        r'emissione\s*[:\-]?\s*([0-9]{2}/[0-9]{2}/[0-9]{4})',
+        r'emissione\s*[:\-]?\s*([0-9]{2}-[0-9]{2}-[0-9]{4})',
+        r'data\s+fattura\s*[:\-]?\s*([0-9]{1,2}\s+[a-zàé]{3,9}\s+[0-9]{4})',
+        r'emissione\s*[:\-]?\s*([0-9]{1,2}\s+[a-zàé]{3,9}\s+[0-9]{4})',
+    ]
+
+    mesi = {
+        "gennaio":1, "febbraio":2, "marzo":3, "aprile":4, "maggio":5, "giugno":6,
+        "luglio":7, "agosto":8, "settembre":9, "ottobre":10, "novembre":11, "dicembre":12
+    }
+
+    for p in patterns:
+        m = re.search(p, testo_lower)
+        if m:
+            data_str = m.group(1)
+            try:
+                if '/' in data_str or '-' in data_str:
+                    data_str = data_str.replace('-', '/')
+                    dt = datetime.datetime.strptime(data_str, "%d/%m/%Y").date()
+                    return dt.strftime("%d/%m/%Y")
+                else:
+                    parti = data_str.split()
+                    if len(parti) == 3:
+                        giorno = int(parti[0])
+                        mese = mesi.get(parti[1], 0)
+                        anno = int(parti[2])
+                        if mese != 0:
+                            dt = datetime.date(anno, mese, giorno)
+                            return dt.strftime("%d/%m/%Y")
+            except:
+                pass
+    return "N/D"
+
 def estrai_data_chiusura(testo):
-    m = re.search(r'Documento\s+di\s+chiusura.*?([0-9]{2}/[0-9]{2}/[0-9]{4})', testo, re.IGNORECASE)
-    return m.group(1) if m else "N/D"
+    return estrai_data_fattura_intelligente(testo)
 
 def estrai_numero_fattura(testo):
     m = re.search(r'Numero\s+fattura\s+elettronica\s+valida\s+ai\s+fini\s+fiscali\s*:\s*([A-Z0-9/-]+)', testo, re.IGNORECASE)

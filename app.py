@@ -210,19 +210,22 @@ def estrai_indirizzo(testo: str) -> str:
         # Pattern specifico per questa bolletta dove l'indirizzo è dopo "INTESTAZIONE"
         pattern_bolletta_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # Altri pattern generici
+        # Altri pattern generici (aggiunti anche "C.so" e "Corso" nei pattern)
         patterns = [
             pattern_bolletta_gaia,
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA\s(.*?\d{5}\s\w{2})',
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'(?:Indirizzo|Servizio erogato in|Luogo di fornitura|Indirizzo di fornitura|Indirizzo fornitura)\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|V\.le|Str\.)\s+[A-Za-zÀ-ÿ\s]+?\s*\d{1,5}(?:\s*[A-Za-z]?)?)',
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'(?:Indirizzo|Servizio erogato in|Luogo di fornitura|Indirizzo di fornitura|Indirizzo fornitura)\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so)\s+[A-Za-zÀ-ÿ\s]+?\s*\d{1,5}(?:\s*[A-Za-z]?)?)',
             r'DATI FORNITURA.*?VIA\s(.*?\d{5}\s\w{2})',
             r'(?:DATI FORNITURA|Indirizzo|Luogo di fornitura|Servizio erogato in|Ubicazione).*?VIA[\s\n]+(.*?\d{5}\s\w{2})',
             r'VIA[\s\n]+(.*?)\n\d{5}\s\w{2}',
+            r'CORSO[\s\n]+(.*?)\n\d{5}\s\w{2}',
+            r'C\.SO[\s\n]+(.*?)\n\d{5}\s\w{2}',
+            r'C\.SO[\s]+(.*?\d{5}\s\w{2})',
         ]
         
         for pattern in patterns:

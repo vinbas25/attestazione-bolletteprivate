@@ -14,7 +14,7 @@ st.markdown("""
     <style>
         /* Nasconde menu, header e footer */
         #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
+        footer {visibility: hidden;}CONSUMI
         header {visibility: hidden;}
         
         /* Riduce padding per sfruttare tutto lo spazio */
@@ -310,8 +310,21 @@ def estrai_consumi(testo: str) -> str:
 
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
-    
+
+    def estrai_consumi(testo):
+    testo_upper = testo.upper()
+    idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+    if idx == -1:
+        return "N/D"
+    snippet = testo_upper[idx:idx+600]
+    match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+    if match:
+        try:
+            return float(match.group(1).replace('.', '').replace(',', '.'))
+        except:
+            return "N/D"
     return "N/D"
+
 
 def estrai_dati_cliente(testo: str) -> str:
     """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""

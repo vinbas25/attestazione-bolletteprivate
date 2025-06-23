@@ -56,7 +56,6 @@ def estrai_dati_da_pdf(file):
     totale_consumi = estrai_consumo_fatturato(testo)
 
     return {
-        "File": "",
         "Società": nome_societa,
         "Periodo di Riferimento": periodo_rif,
         "Data": data_chiusura.group(1) if data_chiusura else "N/D",
@@ -65,6 +64,7 @@ def estrai_dati_da_pdf(file):
         "Via": "",
         "Numero Fattura": numero_fattura.group(1) if numero_fattura else "N/D",
         "Totale Bolletta (€)": totale_bolletta.group(1) if totale_bolletta else "N/D",
+        "File": "",
         "Consumi": totale_consumi
     }
 

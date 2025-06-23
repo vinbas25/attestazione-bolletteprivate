@@ -408,7 +408,7 @@ def main():
 
         for i, file in enumerate(file_pdf_list):
             status_text.text(f"Elaborazione {i+1}/{len(file_pdf_list)}: {file.name[:30]}...")
-            progress_bar.progress((i + 1) / len(file_pdf_list))))
+            progress_bar.progress((i + 1) / len(file_pdf_list)))
 
             try:
                 dati = estrai_dati(file)

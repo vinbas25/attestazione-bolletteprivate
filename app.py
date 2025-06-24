@@ -218,7 +218,7 @@ import re
 def estrai_indirizzo(testo: str) -> str:
     """
     Estrae l'indirizzo di fornitura da una bolletta, supportando diversi formati tra cui:
-    - Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
+    - Acquedotto del Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
     - Nuove Acque S.p.A. (formato "Indirizzo fornitura" seguito da indirizzo completo)
     - GAIA S.p.A. (formato "INTESTAZIONE" seguito da indirizzo su due righe)
     - Altri formati comuni con varianti di intestazione
@@ -693,7 +693,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             "A2A ENERGIA": "01192830172", 
             "ACQUE VERONA": "02352230235",
             "ACQUE SPA": "05006920482",
-            "AQUEDOTTO DEL FIORA": "01153850523",
+            "ACQUEDOTTO DEL FIORA": "01153850523",
             "ASA LIVORNO": "00102150497",
             "ENEL ENERGIA": "00934061007",
             "NUOVE ACQUE": "01359930482",

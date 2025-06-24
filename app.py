@@ -737,31 +737,35 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = 0  # Allineamento a sinistra
         
-        # Gruppo firma allineato a destra e perfettamente incolonnato
-        if firma_selezionata == "Mar. Basile Vincenzo":
-            # Calcola la lunghezza della stringa più lunga per allineare
-            qualifica_text = "L'Addetto al Drappello Gestione Patrimonio Immobiliare"
-            firma_text = "Mar. Basile Vincenzo"
-            
-            # Aggiungi spazi per allineare a destra
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = 2  # Allineamento a destra
-            qualifica.add_run(qualifica_text)
-            
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma.add_run(firma_text)
-        else:
-            qualifica_text = "Il Capo Sezione Infrastrutture in S.V."
-            firma_text = "Cap. Carla Mottola"
-            
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = 2  # Allineamento a destra
-            qualifica.add_run(qualifica_text)
-            
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma.add_run(firma_text)
+       # Gruppo firma allineato a destra con qualifica e nome perfettamente incolonnati
+if firma_selezionata == "Mar. Basile Vincenzo":
+    # Blocco firma per Mar. Basile Vincenzo
+    qualifica = doc.add_paragraph()
+    qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    qualifica_run = qualifica.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+    qualifica_run.font.name = 'Arial'
+    qualifica_run.font.size = Pt(12)
+    
+    firma = doc.add_paragraph()
+    firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    # Aggiungi spazi per allineare il nome sotto la qualifica
+    firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")  # Regola il numero di spazi (10) secondo necessità
+    firma_run.font.name = 'Arial'
+    firma_run.font.size = Pt(12)
+else:
+    # Blocco firma per Cap. Carla Mottola
+    qualifica = doc.add_paragraph()
+    qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    qualifica_run = qualifica.add_run("Il Capo Sezione Infrastrutture in S.V.")
+    qualifica_run.font.name = 'Arial'
+    qualifica_run.font.size = Pt(12)
+    
+    firma = doc.add_paragraph()
+    firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    # Aggiungi spazi per allineare il nome sotto la qualifica
+    firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")  # Regola il numero di spazi (10) secondo necessità
+    firma_run.font.name = 'Arial'
+    firma_run.font.size = Pt(12)
         
         # Salva in memoria
         output = BytesIO()

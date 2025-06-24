@@ -496,8 +496,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         section = doc.sections[0]
 
         # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(40)  # Ridotto ulteriormente
-        section.right_margin = Pt(40)  # Ridotto ulteriormente
+        section.left_margin = Pt(60)  # Ridotto ulteriormente
+        section.right_margin = Pt(60)  # Ridotto ulteriormente
 
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
@@ -659,13 +659,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
         firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(11)
+        firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)
         firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(11)
+        firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = io.BytesIO()

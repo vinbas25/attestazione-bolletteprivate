@@ -47,17 +47,17 @@ PIva_DATABASE = {
 }
 
 st.markdown("""
-<style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-.main .block-container {
-    padding-top: 1rem;
-    padding-right: 1rem;
-    padding-left: 1rem;
-    padding-bottom: 1rem;
-}
-</style>
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .main .block-container {
+            padding-top: 1rem;
+            padding-right: 1rem;
+            padding-left: 1rem;
+            padding-bottom: 1rem;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
 # Configurazione del logging
@@ -244,7 +244,7 @@ def estrai_indirizzo(testo: str) -> str:
         return "N/D"
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
-    return "N/D"
+        return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
     try:
@@ -299,7 +299,7 @@ def determina_tipo_bolletta(societa: str, testo: str) -> str:
             return "gas"
         else:
             return "energia"
-    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia", "asa","acque"]):
+    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia", "acque", "asa"]):
         return "acqua"
     elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
         return "energia"
@@ -384,7 +384,7 @@ def estrai_dati_cliente(testo: str) -> str:
         return "N/D"
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dei dati cliente: {str(e)}")
-    return "N/D"
+        return "N/D"
 
 def estrai_dati(file) -> Dict[str, str]:
     testo = estrai_testo_da_pdf(file)
@@ -460,7 +460,7 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
         return output
     except Exception as e:
         logger.error(f"Errore durante la creazione del file Excel: {str(e)}")
-    return None
+        return None
 
 def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     try:
@@ -501,9 +501,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-        if data_fattura.weekday() == 5: # Sabato
+        if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6: # Domenica
+        elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
@@ -511,11 +511,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         try:
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            header.add_run("\n\n")
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
                 header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-            header_run = header.add_run("\nGuardia di Finanza\n")
+                header.add_run("\n\n")
+            header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
             header_run.font.size = Pt(20)
             header_run.font.name = 'Arial'
@@ -537,7 +539,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(16)
             header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
+            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
@@ -596,9 +598,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
-        if not piva:
-            piva = PIva_DATABASE["ACQUE S.P.A."]
-            logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+            if not piva:
+                piva = PIva_DATABASE["ACQUE S.P.A."]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
         if tipo_fornitura == "acqua":
             footer_text = (
                 f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
@@ -619,25 +621,25 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
         if firma_selezionata == "Mar. Basile Vincenzo":
-            qualifica = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            qualifica_run = qualifica.runs[0]
+            qualifica = doc.add_paragraph()
+            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            qualifica_run = qualifica.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph("Mar. Basile Vincenzo")
-            firma.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            firma_run = firma.runs[0]
+            firma = doc.add_paragraph()
+            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         else:
-            qualifica = doc.add_paragraph("Il Capo Sezione Infrastruttures in S.V.")
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            qualifica_run = qualifica.runs[0]
+            qualifica = doc.add_paragraph()
+            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            qualifica_run = qualifica.add_run("Il Capo Sezione Infrastruttures in S.V.")
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph("Cap. Carla Mottola")
-            firma.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            firma_run = firma.runs[0]
+            firma = doc.add_paragraph()
+            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         output = BytesIO()
@@ -648,7 +650,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         return output, nome_file
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
-    return None, "attestazione.docx"
+        return None, "attestazione.docx"
 
 def main():
     st.title("📊 REPORT 2.0")
@@ -667,12 +669,12 @@ def main():
         st.header("Impostazioni")
         mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
         raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
-        file_pdf_list = st.file_uploader(
-            "Seleziona i file PDF delle bollette",
-            type=["pdf"],
-            accept_multiple_files=True,
-            help="Puoi selezionare più file contemporaneamente"
-        )
+    file_pdf_list = st.file_uploader(
+        "Seleziona i file PDF delle bollette",
+        type=["pdf"],
+        accept_multiple_files=True,
+        help="Puoi selezionare più file contemporaneamente"
+    )
     if file_pdf_list:
         risultati = []
         progress_bar = st.progress(0)
@@ -768,8 +770,8 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; font-size: 14px; color: gray;">
-    Strumento sviluppato dal Mar. Vincenzo Basile<br>
-    Supporta i principali fornitori italiani di luce, gas e acqua
+        Strumento sviluppato dal Mar. Vincenzo Basile<br>
+        Supporta i principali fornitori italiani di luce, gas e acqua
     </div>
     """, unsafe_allow_html=True)
 

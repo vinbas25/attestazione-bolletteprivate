@@ -736,7 +736,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = 0  # Allineamento a sinistra
-        
+
+
         if firma_selezionata == "Mar. Basile Vincenzo":
     # Allineamento per Mar. Basile Vincenzo
     qualifica = doc.add_paragraph()

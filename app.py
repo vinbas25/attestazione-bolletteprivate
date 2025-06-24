@@ -608,6 +608,7 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
+
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
@@ -616,7 +617,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         # Imposta lo stile predefinito del documento
         style = doc.styles['Normal']
         style.font.name = 'Arial'
-        style.font.size = Pt(12)
+        style.font.size = Pt(11)
         
         # Estrai la data della prima fattura
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
@@ -636,19 +637,19 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Intestazione
+        # Intestazione con stile come nell'esempio
         header = doc.add_paragraph()
         header_run = header.add_run("Guardia di Finanza\n")
         header_run.bold = True
-        header_run.font.size = Pt(14)
+        header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
         header_run.bold = True
-        header_run.font.size = Pt(12)
+        header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
+        header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
         header_run.bold = True
         header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
@@ -664,16 +665,17 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         # Corpo del documento
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
+            "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
         body = doc.add_paragraph(body_text)
         body.alignment = 3  # Giustificato
         
-        # Tabella fatture
+        # Tabella fatture con stile semplice
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
+        table.autofit = False
         
         # Intestazione tabella
         hdr_cells = table.rows[0].cells
@@ -681,12 +683,21 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
         
+        # Formatta le celle dell'intestazione
+        for cell in hdr_cells:
+            cell.paragraphs[0].runs[0].font.bold = True
+        
         # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+        
+        # Imposta la larghezza delle colonne
+        for idx, width in enumerate([3.5, 2.5, 2.0]):  # in cm
+            for cell in table.columns[idx].cells:
+                cell.width = Cm(width)
         
         # Ricerca automatica P.IVA
         societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
@@ -702,7 +713,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
         
         footer_text = (
-            f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
+            f"\nemesse dalla società {societa} - P.I. {piva} - si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
             "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
@@ -722,12 +733,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             
             firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
             firma2.alignment = 0  # Allineamento a sinistra
+            firma2.runs[0].font.bold = True
         else:
             firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
             firma1.alignment = 0  # Allineamento a sinistra
             
             firma2 = doc.add_paragraph("Cap. Carla Mottola")
             firma2.alignment = 0  # Allineamento a sinistra
+            firma2.runs[0].font.bold = True
         
         # Salva in memoria
         output = BytesIO()
@@ -743,6 +756,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
+
+
+
+
+
+
+
 
 def main():
     st.title("📊 REPORT 2.0")

@@ -291,11 +291,19 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
-def determina_tipo_bolletta(societa: str) -> str:
+def determina_tipo_bolletta(societa: str, testo: str) -> str:
     societa_lower = societa.lower()
+    testo_lower = testo.lower()
+
+    if "agsm" in societa_lower:
+        if "gas" in testo_lower:
+            return "gas"
+        else:
+            return "energia"
+
     if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia"]):
         return "acqua"
-    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison", "agsm"]):
+    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
         return "energia"
     elif any(kw in societa_lower for kw in ["gas"]):
         return "gas"
@@ -385,7 +393,7 @@ def estrai_dati(file) -> Dict[str, str]:
     if not testo:
         return None
     societa = estrai_societa(testo)
-    tipo_bolletta = determina_tipo_bolletta(societa)
+    tipo_bolletta = determina_tipo_bolletta(societa, testo)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo, tipo_bolletta)
@@ -554,7 +562,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
-        tipo_fornitura = determina_tipo_bolletta(societa)
+        tipo_fornitura = determina_tipo_bolletta(societa, "")
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "

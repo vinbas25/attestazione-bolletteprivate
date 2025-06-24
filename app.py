@@ -494,13 +494,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Pt(70)
-        section.right_margin = Pt(70)
+
+        # Diminuisci i margini destro e sinistro
+        section.left_margin = Pt(50)  # Ridotto da Pt(70) a Pt(50)
+        section.right_margin = Pt(50)  # Ridotto da Pt(70) a Pt(50)
+
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
+
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
+
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
@@ -508,12 +513,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-        if data_fattura.weekday() == 5:
+
+        if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:
+        elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
+
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
         try:
             header = doc.add_paragraph()
@@ -549,6 +556,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
+
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -567,8 +575,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(16)
         title_run.font.name = 'Arial'
+
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
+
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -577,33 +587,40 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         )
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
                 row.cells[i].width = Pt(max_length * 10)
+
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         table.alignment = 1
         doc.add_paragraph("\n")
+
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa)
             if not piva:
                 piva = PIva_DATABASE["ACQUE S.P.A."]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
                 "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
@@ -628,11 +645,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                     "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
                 )
+
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
         if firma_selezionata == "Mar. Basile Vincenzo":
             firma_paragraph = doc.add_paragraph()
             firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\nMar. Basile Vincenzo")
@@ -645,6 +665,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(11)
             firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)

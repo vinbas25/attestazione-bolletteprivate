@@ -218,7 +218,7 @@ import re
 def estrai_indirizzo(testo: str) -> str:
     """
     Estrae l'indirizzo di fornitura da una bolletta, supportando diversi formati tra cui:
-    - Acquedotto del Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
+    - Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
     - Nuove Acque S.p.A. (formato "Indirizzo fornitura" seguito da indirizzo completo)
     - GAIA S.p.A. (formato "INTESTAZIONE" seguito da indirizzo su due righe)
     - Altri formati comuni con varianti di intestazione
@@ -237,8 +237,8 @@ def estrai_indirizzo(testo: str) -> str:
         # 1. Pattern specifico per GAIA S.p.A. (indirizzo su due righe dopo "INTESTAZIONE")
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # 2. Pattern per Acquedotto del Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
-        pattern_acquedotto_del_fiora = (
+        # 2. Pattern per Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
+        pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
             r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
             r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'  # Via + civico
@@ -280,10 +280,10 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_nuove_acque.group(1).strip()
             return indirizzo
         
-        # Poi prova il pattern specifico per Acquedotto del Fiora
-        match_acquedotto_del_fiora = re.search(pattern_acquedotto_del_fiora, testo, re.IGNORECASE | re.MULTILINE)
-        if match_acquedotto_del_fiora:
-            indirizzo = match_acquedotto_del_fiora.group(1).strip()
+        # Poi prova il pattern specifico per Fiora
+        match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
+        if match_fiora:
+            indirizzo = match_fiora.group(1).strip()
             # Pulizia finale
             indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
             return indirizzo
@@ -307,15 +307,15 @@ def estrai_indirizzo(testo: str) -> str:
 
 # Test con diversi formati
 if __name__ == "__main__":
-    # Test caso Acquedotto del Fiora
-    testo_acquedotto_del_fiora = """
+    # Test caso Fiora
+    testo_fiora = """
     CODICE UTENZA: 200001748008
     DATI FORNITURA
     VIA DELLA VITTORIA 8
     58019 PORTO SANTO STEFANO GR
     TIPOLOGIA MISURATORE: Minuratore
     """
-    print("Test Acquedotto del Fiora:", estrai_indirizzo(testo_acquedotto_del_fiora))  # Output: "VIA DELLA VITTORIA 8"
+    print("Test Fiora:", estrai_indirizzo(testo_fiora))  # Output: "VIA DELLA VITTORIA 8"
     
     # Test caso GAIA
     testo_gaia = """
@@ -684,7 +684,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
+def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
         # Dizionario delle partite IVA delle società comuni
@@ -816,27 +816,15 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        # Aggiungi la firma in base alla selezione
-        if firma_selezionata == "Mar. Basile Vincenzo":
-            firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-            
-            firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-        else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-            
-            firma2 = doc.add_paragraph("in S.V. Cap. Carla Mottola")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+        firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+        for run in firma1.runs:
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(11)
+        
+        firma2 = doc.add_paragraph("Mar. Basile Miricenzo")
+        for run in firma2.runs:
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(11)
         
         # Salva in memoria
         output = BytesIO()

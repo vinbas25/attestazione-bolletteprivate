@@ -676,7 +676,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         return output, nome_file
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
-        return None, "attestazione.docx
+        return None, "attestazione.docx"
 
 def main():
     st.title("📊 REPORT 2.0")

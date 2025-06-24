@@ -636,8 +636,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Intestazione
+        # Intestazione - Centrata
         header = doc.add_paragraph()
+        header.alignment = 1  # Centrato
+        
         header_run = header.add_run("Guardia di Finanza\n")
         header_run.bold = True
         header_run.font.size = Pt(14)
@@ -653,15 +655,15 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
         
-        # Titolo
+        # Titolo - Centrato
         title = doc.add_paragraph("Dichiarazione di regolare fornitura")
         title_run = title.runs[0]
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
-        title.alignment = 0  # Allineamento a sinistra
+        title.alignment = 1  # Centrato
         
-        # Corpo del documento
+        # Corpo del documento - Giustificato
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
@@ -712,22 +714,30 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         
         # Data e firma
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
-        data_para.alignment = 0  # Allineamento a sinistra
         
-        # Aggiungi la firma in basso a sinistra
+        # Paragrafo per la data (allineato a destra)
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
+        data_para.alignment = 2  # Allineamento a destra
+        
+        # Aggiungi la firma (allineata a destra)
         if firma_selezionata == "Mar. Basile Vincenzo":
-            firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            firma1.alignment = 0  # Allineamento a sinistra
+            # Creiamo un paragrafo per la qualifica centrato
+            qualifica = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+            qualifica.alignment = 1  # Centrato
             
-            firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
-            firma2.alignment = 0  # Allineamento a sinistra
+            # Creiamo un paragrafo per la firma centrato
+            firma = doc.add_paragraph("Mar. Basile Vincenzo")
+            firma.alignment = 1  # Centrato
+            firma.runs[0].bold = True  # Rende il nome in grassetto
         else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
-            firma1.alignment = 0  # Allineamento a sinistra
+            # Creiamo un paragrafo per la qualifica centrato
+            qualifica = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
+            qualifica.alignment = 1  # Centrato
             
-            firma2 = doc.add_paragraph("Cap. Carla Mottola")
-            firma2.alignment = 0  # Allineamento a sinistra
+            # Creiamo un paragrafo per la firma centrato
+            firma = doc.add_paragraph("Cap. Carla Mottola")
+            firma.alignment = 1  # Centrato
+            firma.runs[0].bold = True  # Rende il nome in grassetto
         
         # Salva in memoria
         output = BytesIO()

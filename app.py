@@ -684,79 +684,79 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-def valida_piva_italiana(piva: str) -> bool:
-    """Verifica la validità formale di una P.IVA italiana (checksum)"""
-    if len(piva) != 11 or not piva.isdigit():
-        return False
-    
-    # Calcolo cifra di controllo
-    total = 0
-    for i in range(0, 10):
-        n = int(piva[i])
-        if i % 2 == 1:
-            n *= 2
-            if n > 9:
-                n = n // 10 + n % 10
-        total += n
-    
-    checksum = (10 - (total % 10)) % 10
-    return checksum == int(piva[-1])
+PARTITE_IVA_SOCIETA = {
+    "AGSM AIM ENERGIA": "01584620234",
+    "A2A ENERGIA": "01192830172", 
+    "ACQUE VERONA": "02352230235",
+    "ACQUE SPA": "05006920482",
+    "AQUEDOTTO DEL FIORA": "01153850523",
+    "ASA LIVORNO": "00102150497",
+    "ENEL ENERGIA": "00934061007",
+    "NUOVE ACQUE": "01359930482",
+    "GAIA SPA": "01966240465",
+    "PUBLIACQUA": "01645330482",
+    "EDISON ENERGIA": "09514811001"
+}
 
-def trova_piva_in_testo(testo: str) -> Optional[str]:
-    """Cerca una partita IVA italiana (11 cifre) in una stringa"""
-    # Regex più completa che cerca:
-    # 1. Dopo prefissi comuni (con varianti)
-    # 2. Sequenze di 11 cifre con possibili separatori
-    # 3. In formato libero (standalone)
-    patterns = [
-        r'(?:P\.?\s*I\.?\s*V\.?\s*A\.?|P\.?\s*I\.?|C\s*F|I\s*V\s*A)[:\s]*[\s\-]*(?:IT)?\s*([0-9]{11})\b',
-        r'\b(IT)?[0-9]{11}\b',
-        r'\b[0-9]{3}\s*[0-9]{3}\s*[0-9]{5}\b'
-    ]
-    
-    pive_trovate = set()
-    
-    for pattern in patterns:
-        matches = re.finditer(pattern, testo, re.IGNORECASE)
-        for match in matches:
-            piva_candidate = re.sub(r'[^0-9]', '', match.group(1) if match.groups() else match.group(0))
-            if len(piva_candidate) == 11 and valida_piva_italiana(piva_candidate):
-                pive_trovate.add(piva_candidate)
-    
-    # Se troviamo più P.IVA, preferiamo quelle dopo i prefissi ufficiali
-    if len(pive_trovate) == 1:
-        return pive_trovate.pop()
-    
-    # Se multiple, cerchiamo la più probabile (dopo un prefisso)
-    for piva in pive_trovate:
-        if re.search(rf'(?:P\.?I\.?V\.?A\.?|P\.?I\.?|CF|IVA)[^\d]*{piva}', testo, re.I):
-            return piva
-    
-    return pive_trovate.pop() if pive_trovate else None
+# Regex per il riconoscimento delle società
+REGEX_SOCIETA = {
+    re.compile(r"AGSM\s*AIM", re.IGNORECASE): "AGSM AIM ENERGIA",
+    re.compile(r"A2A\s*ENERGIA", re.IGNORECASE): "A2A ENERGIA",
+    re.compile(r"ACQUE\s*VERONA", re.IGNORECASE): "ACQUE VERONA",
+    re.compile(r"ACQUE\s*SPA", re.IGNORECASE): "ACQUE SPA",
+    re.compile(r"AQUEDOTTO\s*DEL\s*FIORA", re.IGNORECASE): "AQUEDOTTO DEL FIORA",
+    re.compile(r"ASA\s*LIVORNO", re.IGNORECASE): "ASA LIVORNO",
+    re.compile(r"ENEL\s*ENERGIA", re.IGNORECASE): "ENEL ENERGIA",
+    re.compile(r"NUOVE\s*ACQUE", re.IGNORECASE): "NUOVE ACQUE",
+    re.compile(r"GAIA\s*SPA", re.IGNORECASE): "GAIA SPA",
+    re.compile(r"PUBLIACQUA", re.IGNORECASE): "PUBLIACQUA",
+    re.compile(r"EDISON\s*ENERGIA", re.IGNORECASE): "EDISON ENERGIA"
+}
 
-def estrai_piva_da_documento(dati: List[Dict[str, str]]) -> str:
-    """Cerca la P.IVA in tutti i campi del documento"""
-    # Priorità 1: Campo dedicato
+def identifica_societa(testo: str) -> Optional[str]:
+    """Identifica la società dal testo usando le regex predefinite"""
+    for regex, societa in REGEX_SOCIETA.items():
+        if regex.search(testo):
+            return societa
+    return None
+
+def estrai_piva_con_regole(dati: List[Dict[str, str]]) -> str:
+    """Nuova versione con regole specifiche per società"""
+    # 1. Cerca prima nei campi espliciti
     for fattura in dati:
         if 'P.IVA' in fattura:
             piva = re.sub(r'[^0-9]', '', str(fattura['P.IVA']))
             if len(piva) == 11 and valida_piva_italiana(piva):
                 return piva
     
-    # Priorità 2: Cerca in tutti i campi
+    # 2. Cerca la società nei dati
+    societa_trovata = None
+    for fattura in dati:
+        for valore in fattura.values():
+            if isinstance(valore, str):
+                societa = identifica_societa(valore)
+                if societa:
+                    societa_trovata = societa
+                    break
+        if societa_trovata:
+            break
+    
+    # 3. Se trovata società conosciuta, usa la sua P.IVA
+    if societa_trovata and societa_trovata in PARTITE_IVA_SOCIETA:
+        logger.info(f"Trovata società riconosciuta: {societa_trovata}")
+        return PARTITE_IVA_SOCIETA[societa_trovata]
+    
+    # 4. Altrimenti cerca P.IVA nel testo
     pive_trovate = set()
     for fattura in dati:
-        for key, value in fattura.items():
-            if isinstance(value, str):
-                piva = trova_piva_in_testo(value)
+        for valore in fattura.values():
+            if isinstance(valore, str):
+                piva = trova_piva_in_testo(valore)
                 if piva:
                     pive_trovate.add(piva)
     
-    if not pive_trovate:
-        logger.warning("Nessuna P.IVA valida trovata, usando default")
-        return '01966240465'  # Default
-    
-    return max(pive_trovate, key=lambda x: len(x))  # Prende la più lunga (più probabile)
+    # 5. Fallback: usa default GAIA SPA se nessuna trovata
+    return pive_trovate.pop() if pive_trovate else PARTITE_IVA_SOCIETA["GAIA SPA"]
 
 def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""

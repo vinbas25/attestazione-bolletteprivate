@@ -689,6 +689,25 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     try:
         doc = Document()
         
+        # Estrai la data della prima fattura e convertila in datetime
+        data_fattura_str = dati[0].get('Data Fattura') if dati else None
+        if not data_fattura_str:
+            raise ValueError("Data fattura non presente nei dati")
+        
+        # Converti la data della fattura in oggetto datetime
+        try:
+            data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
+        except ValueError:
+            raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+        
+        # Regola la data per sabato/domenica
+        if data_fattura.weekday() == 5:  # Sabato
+            data_attestazione = data_fattura - datetime.timedelta(days=1)
+        elif data_fattura.weekday() == 6:  # Domenica
+            data_attestazione = data_fattura - datetime.timedelta(days=2)
+        else:
+            data_attestazione = data_fattura
+        
         # Intestazione
         header = doc.add_paragraph()
         header_run = header.add_run("Guardia di Finanza\n")
@@ -712,7 +731,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Times New Roman'
-        title.alignment = 0  # Allineamento a sinistra (non centrato come nel PDF)
+        title.alignment = 0  # Allineamento a sinistra
         
         # Corpo del documento
         body = doc.add_paragraph(
@@ -769,9 +788,9 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        # Data e firma
-        oggi = datetime.datetime.now().strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {oggi}\n\n")
+        # Formatta la data dell'attestazione
+        data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         for run in data_para.runs:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
@@ -781,7 +800,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        firma2 = doc.add_paragraph("Mar. ")
+        firma2 = doc.add_paragraph("Mar.")
         for run in firma2.runs:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)

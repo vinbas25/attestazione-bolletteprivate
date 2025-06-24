@@ -683,7 +683,178 @@ def main():
         Supporta i principali fornitori italiani di luce, gas e acqua
     </div>
     """, unsafe_allow_html=True)
+def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+    """Crea un documento Word di attestazione con i dati delle bollette."""
+    try:
+        doc = Document()
+        
+        # Aggiungi titolo
+        title = doc.add_heading('Attestazione Spese', 0)
+        title.alignment = 1  # Centrato
+        
+        # Aggiungi data corrente
+        oggi = datetime.datetime.now().strftime("%d/%m/%Y")
+        doc.add_paragraph(f"Data attestazione: {oggi}\n", style='BodyText')
+        
+        # Aggiungi intestazione tabella
+        doc.add_paragraph("Di seguito si attestano le seguenti spese:\n", style='BodyText')
+        
+        # Crea tabella
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        # Intestazione tabella
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Numero Fattura'
+        hdr_cells[1].text = 'Data Fattura'
+        hdr_cells[2].text = 'Importo (€)'
+        
+        # Aggiungi dati
+        for fattura in dati:
+            row_cells = table.add_row().cells
+            row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
+            row_cells[1].text = fattura.get('Data Fattura', 'N/D')
+            row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+        
+        # Aggiungi firma
+        doc.add_paragraph("\n\n__________________________\nFirma", style='BodyText')
+        
+        # Salva in memoria
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        return output
+    except Exception as e:
+        logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
+        return None
 
+# [TUTTE LE ALTRE FUNZIONI ESISTENTI RIMANGONO INVARIATE...]
+# ... estrai_testo_da_pdf, estrai_societa, estrai_periodo, parse_date, estrai_data_fattura, 
+# ... estrai_pod_pdr, estrai_indirizzo, estrai_numero_fattura, estrai_totale_bolletta,
+# ... estrai_consumi, estrai_dati_cliente, estrai_dati, crea_excel, mostra_grafico_consumi
+
+def main():
+    st.title("📊 Analizzatore Bollette Migliorato")
+    st.markdown("""
+    **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
+    """)
+
+    # Aggiungi CSS personalizzato per allargare la visualizzazione
+    st.markdown("""
+    <style>
+    div[data-baseweb="base-input"] {
+        width: 100%;
+    }
+    div[data-testid="stDataFrame"] {
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.sidebar:
+        st.header("Impostazioni")
+        mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
+        raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
+
+    file_pdf_list = st.file_uploader(
+        "Seleziona i file PDF delle bollette",
+        type=["pdf"],
+        accept_multiple_files=True,
+        help="Puoi selezionare più file contemporaneamente"
+    )
+
+    if file_pdf_list:
+        risultati = []
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        for i, file in enumerate(file_pdf_list):
+            status_text.text(f"Elaborazione {i+1}/{len(file_pdf_list)}: {file.name[:30]}...")
+            progress_bar.progress((i + 1) / len(file_pdf_list))
+            try:
+                dati = estrai_dati(file)
+                if dati:
+                    risultati.append(dati)
+            except Exception as e:
+                logger.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
+                continue
+        progress_bar.empty()
+        if risultati:
+            status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
+            st.subheader("📋 Dati Estratti")
+            if raggruppa_societa:
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
+                if societa_disponibili:
+                    societa = st.selectbox(
+                        "Filtra per società",
+                        options=["Tutte"] + societa_disponibili,
+                        index=0
+                    )
+                    if societa != "Tutte":
+                        risultati_filtrati = [d for d in risultati if d['Società'] == societa]
+                    else:
+                        risultati_filtrati = risultati
+                else:
+                    risultati_filtrati = risultati
+                    st.warning("Nessuna società riconosciuta nei documenti")
+            else:
+                risultati_filtrati = risultati
+
+            # Utilizza st.data_editor per una migliore interazione
+            df = pd.DataFrame(risultati_filtrati)
+            st.data_editor(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                disabled=True,
+                key="data_editor"
+            )
+
+            if mostra_grafici and risultati_filtrati:
+                mostra_grafico_consumi(risultati_filtrati)
+
+            st.subheader("📤 Esporta Dati")
+            col1, col2, col3 = st.columns(3)  # Aggiunta una terza colonna per l'attestazione
+            with col1:
+                excel_data = crea_excel(risultati_filtrati)
+                if excel_data:
+                    st.download_button(
+                        label="Scarica Excel",
+                        data=excel_data,
+                        file_name="report_consumi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        help="Scarica i dati in formato Excel"
+                    )
+            with col2:
+                if risultati_filtrati:
+                    csv = pd.DataFrame(risultati_filtrati).to_csv(index=False, sep=';').encode('utf-8')
+                    st.download_button(
+                        label="Scarica CSV",
+                        data=csv,
+                        file_name="report_consumi.csv",
+                        mime="text/csv",
+                        help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
+                    )
+            with col3:
+                if risultati_filtrati:
+                    attestazione = crea_attestazione(risultati_filtrati)
+                    if attestazione:
+                        st.download_button(
+                            label="Scarica Attestazione",
+                            data=attestazione,
+                            file_name="attestazione_spese.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            help="Scarica l'attestazione precompilata in formato Word"
+                        )
+        else:
+            status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
+
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; font-size: 14px; color: gray;">
+        Strumento sviluppato dal Mar. Vincenzo Basile<br>
+        Supporta i principali fornitori italiani di luce, gas e acqua
+    </div>
+    """, unsafe_allow_html=True)
 if __name__ == "__main__":
     main()
 

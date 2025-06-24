@@ -307,8 +307,8 @@ def estrai_consumi(testo: str) -> str:
                 except:
                     pass
         patterns = [
-            r'Consumo\s*\n\s*(\d+)\s*mc',
             r'consumo\s*([\d\.]+)\s*kWh',
+            r'Consumo\s*\n\s*(\d+)\s*mc',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
             r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',
             r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',

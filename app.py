@@ -747,7 +747,7 @@ def genera_attestazione_word(dati_bollette: List[Dict[str, str]]) -> bytes:
     except Exception as e:
         logger.error(f"Errore durante la generazione dell'attestazione Word: {str(e)}")
         raise
-ef main():
+def main():
     # ... [tutto il codice esistente fino alla sezione esporta dati] ...
     
     st.subheader("📤 Esporta Dati")

@@ -636,35 +636,37 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Intestazione
+        # Intestazione - Centrata
         header = doc.add_paragraph()
+        header.alignment = 1  # Centrato
+        
         header_run = header.add_run("Guardia di Finanza\n")
         header_run.bold = True
         header_run.font.size = Pt(14)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
         header_run.bold = True
         header_run.font.size = Pt(12)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
+        header_run = header.add_run("Ufficio Logistico -- Sezione Infrastrutture\n\n")
         header_run.bold = True
         header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
         
-        # Titolo
+        # Titolo - Centrato
         title = doc.add_paragraph("Dichiarazione di regolare fornitura")
         title_run = title.runs[0]
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
-        title.alignment = 0  # Allineamento a sinistra
+        title.alignment = 1  # Centrato
         
-        # Corpo del documento
+        # Corpo del documento - Giustificato
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
+            "90000/310 edizione 2011 del Comando Generale G. di F. -- I Reparto Ufficio Ordinamento -- "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
@@ -689,7 +691,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
         
         # Ricerca automatica P.IVA
-        societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
         piva = dati[0].get('P.IVA')  # Prima verifica se è già fornita nei dati
         
         if not piva:
@@ -697,12 +699,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             piva = PIva_DATABASE.get(societa.upper())
             
             if not piva:
-                # Se non trovata, usa quella di default (GAIA)
-                piva = PIva_DATABASE["GAIA SPA"]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
+                # Se non trovata, usa quella di default (ACQUE SPA)
+                piva = PIva_DATABASE["ACQUE SPA"]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
         
         footer_text = (
-            f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
+            f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
             "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
@@ -710,24 +712,36 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         footer = doc.add_paragraph(footer_text)
         footer.alignment = 3  # Giustificato
         
-        # Data e firma
+        # Data (allineata a sinistra)
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = 0  # Allineamento a sinistra
         
-        # Aggiungi la firma in basso a sinistra
+        # Gruppo firma allineato a destra e perfettamente incolonnato
         if firma_selezionata == "Mar. Basile Vincenzo":
-            firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            firma1.alignment = 0  # Allineamento a sinistra
+            # Calcola la lunghezza della stringa più lunga per allineare
+            qualifica_text = "L'Addetto al Drappello Gestione Patrimonio Immobiliare"
+            firma_text = "Mar. Basile Vincenzo"
             
-            firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
-            firma2.alignment = 0  # Allineamento a sinistra
+            # Aggiungi spazi per allineare a destra
+            qualifica = doc.add_paragraph()
+            qualifica.alignment = 2  # Allineamento a destra
+            qualifica.add_run(qualifica_text)
+            
+            firma = doc.add_paragraph()
+            firma.alignment = 2  # Allineamento a destra
+            firma.add_run(firma_text)
         else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
-            firma1.alignment = 0  # Allineamento a sinistra
+            qualifica_text = "Il Capo Sezione Infrastrutture in S.V."
+            firma_text = "Cap. Carla Mottola"
             
-            firma2 = doc.add_paragraph("Cap. Carla Mottola")
-            firma2.alignment = 0  # Allineamento a sinistra
+            qualifica = doc.add_paragraph()
+            qualifica.alignment = 2  # Allineamento a destra
+            qualifica.add_run(qualifica_text)
+            
+            firma = doc.add_paragraph()
+            firma.alignment = 2  # Allineamento a destra
+            firma.add_run(firma_text)
         
         # Salva in memoria
         output = BytesIO()

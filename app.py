@@ -509,7 +509,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))
+                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
                 header.add_run("\n\n")
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
@@ -553,8 +553,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
-        tipo_fornitura = determina_tipo_bolletta(societa)
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
+        tipo_fornitura = determina_tipo_bolletta(societa, "")
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -581,20 +581,20 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
-                row.cells[i].width = Pt(max_length * 10)  # Moltiplica per un fattore per ottenere una larghezza adeguata
+                row.cells[i].width = Pt(max_length * 10)
         # Centra il testo nelle celle della tabella
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         # Centra la tabella nel documento
-        table.alignment = 1  # 1 rappresenta l'allineamento al centro
+        table.alignment = 1
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
             if not piva:
-                piva = PIva_DATABASE["ACQUE SPA"]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
+                piva = PIva_DATABASE["ACQUE S.P.A."]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
         if tipo_fornitura == "acqua":
             footer_text = (
                 f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "

@@ -299,7 +299,7 @@ def determina_tipo_bolletta(societa: str, testo: str) -> str:
             return "gas"
         else:
             return "energia"
-    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia", "acque", "asa"]):
+    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia"]):
         return "acqua"
     elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
         return "energia"
@@ -539,7 +539,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(16)
             header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
+            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'

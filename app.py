@@ -511,13 +511,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         try:
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            header.add_run("\n\n")
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
                 header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-                header.add_run("\n\n")
-            header_run = header.add_run("Guardia di Finanza\n")
+            header_run = header.add_run("\nGuardia di Finanza\n")
             header_run.bold = True
             header_run.font.size = Pt(20)
             header_run.font.name = 'Arial'
@@ -525,7 +523,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(16)
             header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
+            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
@@ -621,25 +619,25 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
         if firma_selezionata == "Mar. Basile Vincenzo":
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            qualifica_run = qualifica.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+            qualifica = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+            qualifica.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            qualifica_run = qualifica.runs[0]
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph()
-            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")
+            firma = doc.add_paragraph("Mar. Basile Vincenzo")
+            firma.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            firma_run = firma.runs[0]
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         else:
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            qualifica_run = qualifica.add_run("Il Capo Sezione Infrastruttures in S.V.")
+            qualifica = doc.add_paragraph("Il Capo Sezione Infrastruttures in S.V.")
+            qualifica.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            qualifica_run = qualifica.runs[0]
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph()
-            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
+            firma = doc.add_paragraph("Cap. Carla Mottola")
+            firma.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            firma_run = firma.runs[0]
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         output = BytesIO()

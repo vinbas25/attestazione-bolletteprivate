@@ -21,10 +21,10 @@ def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
     normalizzazione_map = {
-        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
-        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
-        r'(?i)fiora\s*spa$': 'Acquedotto del Fiora S.p.A.',
-        r'(?i)fiora\s*s\.p\.a\.$': 'Acquedotto del Fiora S.p.A.'
+        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
     }
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):
@@ -33,17 +33,17 @@ def normalizza_societa(nome_societa: str) -> str:
 
 # Dizionario delle partite IVA delle società comuni
 PIva_DATABASE = {
-    "AGSM AIM ENERGIA": "01584620234",
-    "A2A ENERGIA": "01192830172",
-    "ACQUE VERONA": "02352230235",
-    "ACQUE SPA": "05006920482",
+    "AGSM AIM ENERGIA S.P.A.": "01584620234",
+    "A2A ENERGIA S.P.A.": "01192830172",
+    "ACQUE VERONA S.P.A.": "02352230235",
+    "ACQUE S.P.A.": "05006920482",
     "ACQUEDOTTO DEL FIORA S.P.A.": "01153850523",
-    "ASA LIVORNO": "00102150497",
-    "ENEL ENERGIA": "00934061007",
-    "NUOVE ACQUE": "01359930482",
-    "GAIA SPA": "01966240465",
-    "PUBLIACQUA": "01645330482",
-    "EDISON ENERGIA": "09514811001"
+    "ASA LIVORNO S.P.A.": "00102150497",
+    "ENEL ENERGIA S.P.A.": "00934061007",
+    "NUOVE ACQUE S.P.A.": "01359930482",
+    "GAIA S.P.A.": "01966240465",
+    "PUBLIACQUA S.P.A.": "01645330482",
+    "EDISON ENERGIA S.P.A.": "09514811001"
 }
 
 st.markdown("""
@@ -72,17 +72,17 @@ MESI_MAP = {
 
 # Elenco esteso di società conosciute con regex specifiche
 SOCIETA_CONOSCIUTE = {
-    "AGSM AIM ENERGIA": r"AGSM\s*AIM",
-    "A2A ENERGIA": r"A2A\s*ENERGIA",
-    "ACQUE VERONA": r"ACQUE\s*VERONA",
-    "ACQUE SPA": r"ACQUE\s*SPA",
-    "ACQUEDOTTO DEL FIORA S.P.A.": r"AQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
-    "ASA LIVORNO": r"ASA\s*LIVORNO",
-    "ENEL ENERGIA": r"ENEL\s*ENERGIA",
-    "NUOVE ACQUE": r"NUOVE\s*ACQUE",
-    "GAIA SPA": r"GAIA\s*SPA",
-    "PUBLIACQUA": r"PUBLIACQUA",
-    "EDISON ENERGIA": r"EDISON\s*ENERGIA"
+    "AGSM AIM ENERGIA S.P.A.": r"AGSM\s*AIM\s*ENERGIA",
+    "A2A ENERGIA S.P.A.": r"A2A\s*ENERGIA",
+    "ACQUE VERONA S.P.A.": r"ACQUE\s*VERONA",
+    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?",
+    "ACQUEDOTTO DEL FIORA S.P.A.": r"ACQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
+    "ASA LIVORNO S.P.A.": r"ASA\s*LIVORNO",
+    "ENEL ENERGIA S.P.A.": r"ENEL\s*ENERGIA",
+    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
+    "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
+    "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
+    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA"
 }
 
 def estrai_testo_da_pdf(file) -> str:
@@ -291,11 +291,17 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
-def determina_tipo_bolletta(societa: str) -> str:
+def determina_tipo_bolletta(societa: str, testo: str) -> str:
     societa_lower = societa.lower()
+    testo_lower = testo.lower()
+    if "agsm" in societa_lower:
+        if "gas" in testo_lower:
+            return "gas"
+        else:
+            return "energia"
     if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia"]):
         return "acqua"
-    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison", "agsm"]):
+    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
         return "energia"
     elif any(kw in societa_lower for kw in ["gas"]):
         return "gas"
@@ -385,7 +391,7 @@ def estrai_dati(file) -> Dict[str, str]:
     if not testo:
         return None
     societa = estrai_societa(testo)
-    tipo_bolletta = determina_tipo_bolletta(societa)
+    tipo_bolletta = determina_tipo_bolletta(societa, testo)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo, tipo_bolletta)

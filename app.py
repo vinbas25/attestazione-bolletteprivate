@@ -645,12 +645,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         header_run.font.size = Pt(14)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
         header_run.bold = True
         header_run.font.size = Pt(12)
         header_run.font.name = 'Arial'
         
-        header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
+        header_run = header.add_run("Ufficio Logistico -- Sezione Infrastrutture\n\n")
         header_run.bold = True
         header_run.font.size = Pt(11)
         header_run.font.name = 'Arial'
@@ -666,7 +666,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         # Corpo del documento - Giustificato
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
+            "90000/310 edizione 2011 del Comando Generale G. di F. -- I Reparto Ufficio Ordinamento -- "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
@@ -691,7 +691,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
         
         # Ricerca automatica P.IVA
-        societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
         piva = dati[0].get('P.IVA')  # Prima verifica se è già fornita nei dati
         
         if not piva:
@@ -699,12 +699,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             piva = PIva_DATABASE.get(societa.upper())
             
             if not piva:
-                # Se non trovata, usa quella di default (GAIA)
-                piva = PIva_DATABASE["GAIA SPA"]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
+                # Se non trovata, usa quella di default (ACQUE SPA)
+                piva = PIva_DATABASE["ACQUE SPA"]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
         
         footer_text = (
-            f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
+            f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
             "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
@@ -757,7 +757,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
-
 def main():
     st.title("📊 REPORT 2.0")
     st.markdown("""

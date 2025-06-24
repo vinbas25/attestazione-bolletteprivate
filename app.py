@@ -116,6 +116,125 @@ def estrai_societa(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione della società: {str(e)}")
     return "N/D"
 
+def determina_tipo_fornitura(societa: str, testo: str) -> str:
+    """Determina il tipo di fornitura in base alla società e al testo della bolletta"""
+    societa_lower = societa.lower()
+    testo_lower = testo.lower()
+    
+    # Controllo per energia elettrica
+    energia_keywords = ["energia", "elettrica", "enel", "a2a", "edison", "e.on", "energia elettrica"]
+    if any(keyword in societa_lower for keyword in energia_keywords) or any(keyword in testo_lower for keyword in energia_keywords):
+        return "energia"
+    
+    # Controllo per gas
+    gas_keywords = ["gas", "metano", "gnl", "smc", "standard metri cubi"]
+    if any(keyword in societa_lower for keyword in gas_keywords) or any(keyword in testo_lower for keyword in gas_keywords):
+        return "gas"
+    
+    # Default: acqua
+    return "acqua"
+
+def estrai_consumi(testo: str, tipo_fornitura: str) -> str:
+    try:
+        testo_upper = testo.upper()
+        
+        # Mappa delle unità di misura in base al tipo di fornitura
+        unita_misura = {
+            "acqua": "mc",
+            "energia": "kWh",
+            "gas": "Smc"
+        }
+        unita_default = unita_misura.get(tipo_fornitura, "mc")
+        
+        # Cerca nei riepiloghi standard
+        idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+        if idx != -1:
+            snippet = testo_upper[idx:idx+600]
+            match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+            if not match:
+                match = re.search(r'TOTALE\s+QUANTITÀ[:\-]?\s*([\d\.,]+)', snippet)
+            if match:
+                try:
+                    valore = float(match.group(1).replace('.', '').replace(',', '.'))
+                    return f"{valore:.2f} {unita_default}"
+                except:
+                    pass
+        
+        # Pattern specifici per tipo di fornitura
+        if tipo_fornitura == "energia":
+            patterns = [
+                r'consumo\s*([\d\.,]+)\s*kWh',
+                r'energia\s*attiva\s*[:\-]?\s*([\d\.,]+)\s*kWh',
+                r'consumo\s*energetico\s*[:\-]?\s*([\d\.,]+)\s*kWh',
+                r'consumi\s*[:\-]?\s*([\d\.,]+)\s*kWh',
+                r'energia\s*fatturata\s*[:\-]?\s*([\d\.,]+)\s*kWh'
+            ]
+        elif tipo_fornitura == "gas":
+            patterns = [
+                r'consumo\s*([\d\.,]+)\s*Smc',
+                r'gas\s*naturale\s*[:\-]?\s*([\d\.,]+)\s*Smc',
+                r'consumo\s*gas\s*[:\-]?\s*([\d\.,]+)\s*Smc',
+                r'standard\s*metri\s*cubi\s*[:\-]?\s*([\d\.,]+)',
+                r'consumi\s*[:\-]?\s*([\d\.,]+)\s*Smc'
+            ]
+        else:  # acqua
+            patterns = [
+                r'consumo\s*([\d\.,]+)\s*mc',
+                r'acqua\s*[:\-]?\s*([\d\.,]+)\s*mc',
+                r'consumo\s*idrico\s*[:\-]?\s*([\d\.,]+)\s*mc',
+                r'consumi\s*[:\-]?\s*([\d\.,]+)\s*mc',
+                r'acqua\s*fatturata\s*[:\-]?\s*([\d\.,]+)\s*mc'
+            ]
+        
+        # Cerca nei pattern specifici
+        for pattern in patterns:
+            matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)
+            for match in matches:
+                try:
+                    valore_raw = match.group(1)
+                    valore_normalizzato = valore_raw.replace('.', '').replace(',', '.')
+                    consumo = float(valore_normalizzato)
+                    
+                    # Prova a estrarre l'unità di misura dal testo se presente
+                    if len(match.groups()) > 1 and match.group(2):
+                        unita = match.group(2).lower()
+                        # Normalizza le unità di misura
+                        if 'kwh' in unita:
+                            unita = 'kWh'
+                        elif 'smc' in unita or 'standard' in unita:
+                            unita = 'Smc'
+                        elif 'mc' in unita or 'm³' in unita:
+                            unita = 'mc'
+                    else:
+                        unita = unita_default
+                    
+                    return f"{consumo:.2f} {unita}"
+                except (ValueError, IndexError):
+                    continue
+        
+        # Fallback: cerca qualsiasi numero seguito da un'unità di misura
+        fallback_pattern = r'(\d+[\.,]?\d*)\s*(kWh|Smc|mc|m³|metri\s*cubi)'
+        fallback_match = re.search(fallback_pattern, testo, re.IGNORECASE)
+        if fallback_match:
+            try:
+                valore = float(fallback_match.group(1).replace('.', '').replace(',', '.'))
+                unita = fallback_match.group(2)
+                # Normalizza le unità di misura
+                if 'kwh' in unita.lower():
+                    unita = 'kWh'
+                elif 'smc' in unita.lower() or 'standard' in unita.lower():
+                    unita = 'Smc'
+                elif 'mc' in unita.lower() or 'm³' in unita.lower():
+                    unita = 'mc'
+                return f"{valore:.2f} {unita}"
+            except:
+                pass
+        
+        return "N/D"
+    except Exception as e:
+        logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
+        return "N/D"
+
 def estrai_periodo(testo: str) -> str:
     try:
         patterns = [
@@ -362,13 +481,15 @@ def estrai_dati(file) -> Dict[str, str]:
     if not testo:
         return None
     societa = estrai_societa(testo)
+    tipo_fornitura = determina_tipo_fornitura(societa, testo)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
-    consumi = estrai_consumi(testo)
+    consumi = estrai_consumi(testo, tipo_fornitura)
     indirizzo = estrai_indirizzo(testo)
     dati_cliente = estrai_dati_cliente(testo)
     return {
         "Società": societa,
+        "Tipo Fornitura": tipo_fornitura,
         "Periodo di Riferimento": estrai_periodo(testo),
         "Data Fattura": estrai_data_fattura(testo),
         "POD": pod,
@@ -686,7 +807,7 @@ def main():
             status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
             st.subheader("📋 Dati Estratti")
             if raggruppa_societa:
-                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
+                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D")))
                 if societa_disponibili:
                     societa = st.selectbox(
                         "Filtra per società",

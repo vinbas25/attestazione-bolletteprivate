@@ -1,4 +1,5 @@
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 import io
 import base64
@@ -655,31 +656,31 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         header_run.font.size = Pt(12)
         header_run.font.name = 'Arial'
         
-       # Titolo - Centrato con riquadro
-title = doc.add_paragraph()
-title.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Centrato
-title_format = title.paragraph_format
+        # Titolo - Centrato con riquadro
+        title = doc.add_paragraph()
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Centrato
+        title_format = title.paragraph_format
 
-# Imposta il bordo
-title_format.border_top = Pt(1)  # Spessore bordo superiore (1 punto)
-title_format.border_bottom = Pt(1)  # Spessore bordo inferiore
-title_format.border_left = Pt(1)  # Spessore bordo sinistro
-title_format.border_right = Pt(1)  # Spessore bordo destro
+        # Imposta il bordo
+        title_format.border_top = Pt(1)  # Spessore bordo superiore (1 punto)
+        title_format.border_bottom = Pt(1)  # Spessore bordo inferiore
+        title_format.border_left = Pt(1)  # Spessore bordo sinistro
+        title_format.border_right = Pt(1)  # Spessore bordo destro
 
-# Stile del bordo (singolo linea continua)
-title_format.border_top_color = RGBColor(0, 0, 0)  # Nero
-title_format.border_bottom_color = RGBColor(0, 0, 0)
-title_format.border_left_color = RGBColor(0, 0, 0)
-title_format.border_right_color = RGBColor(0, 0, 0)
+        # Stile del bordo (singolo linea continua)
+        title_format.border_top_color = RGBColor(0, 0, 0)  # Nero
+        title_format.border_bottom_color = RGBColor(0, 0, 0)
+        title_format.border_left_color = RGBColor(0, 0, 0)
+        title_format.border_right_color = RGBColor(0, 0, 0)
 
-# Aggiungi spazio interno (padding)
-title_format.space_inside = Pt(4)  # 4 punti di spazio tra testo e bordo
+        # Aggiungi spazio interno (padding)
+        title_format.space_inside = Pt(4)  # 4 punti di spazio tra testo e bordo
 
-# Aggiungi il testo
-title_run = title.add_run("Dichiarazione di regolare fornitura")
-title_run.bold = True
-title_run.font.size = Pt(12)
-title_run.font.name = 'Arial'
+        # Aggiungi il testo
+        title_run = title.add_run("Dichiarazione di regolare fornitura")
+        title_run.bold = True
+        title_run.font.size = Pt(12)
+        title_run.font.name = 'Arial'
         
         # Corpo del documento - Giustificato
         body_text = (

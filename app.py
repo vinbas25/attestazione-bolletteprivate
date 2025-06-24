@@ -7,10 +7,11 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
 import streamlit as st
-import fitz
+import fitz  # PyMuPDF
 import io
 import base64
 import requests
+from docx.oxml.ns import qn
 
 # Configurazione layout e stile Streamlit
 st.set_page_config(layout="wide")
@@ -52,20 +53,6 @@ PIva_DATABASE = {
     "PUBLIACQUA S.P.A.": "01645330482",
     "EDISON ENERGIA S.P.A.": "09514811001"
 }
-
-st.markdown("""
-    <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        .main .block-container {
-            padding-top: 1rem;
-            padding-right: 1rem;
-            padding-left: 1rem;
-            padding-bottom: 1rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
 
 # Configurazione del logging
 logging.basicConfig(level=logging.INFO)
@@ -490,10 +477,6 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
-# Configura il logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
     try:
         doc = Document()
@@ -502,29 +485,23 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         section.right_margin = Pt(80)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
-
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
-
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
-
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-
         if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
         elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
-
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
-
         try:
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -559,7 +536,6 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
-
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -578,17 +554,14 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         title_run.bold = True
         title_run.font.size = Pt(16)
         title_run.font.name = 'Arial'
-
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
-
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
-
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         body.paragraph_format.space_after = Pt(0)
@@ -596,41 +569,33 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         body.paragraph_format.widow_control = True
         body.paragraph_format.auto_space_de = True
         body.paragraph_format.auto_space_dn = True
-
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
-
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
                 row.cells[i].width = Pt(max_length * 10)
-
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
         table.alignment = 1
-
         doc.add_paragraph().paragraph_format.space_after = Pt(0)
-
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa)
             if not piva:
                 piva = PIva_DATABASE["ACQUE S.P.A."]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
-
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
                 "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
@@ -655,7 +620,6 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                     "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
                 )
-
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         footer.paragraph_format.space_after = Pt(0)
@@ -663,36 +627,27 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         footer.paragraph_format.widow_control = True
         footer.paragraph_format.auto_space_de = True
         footer.paragraph_format.auto_space_dn = True
-
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-        # Imposta la sillabazione automatica
         settings = doc.settings
         settings.element.set(qn('w:autoHyphenation'), '1')
-
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
-
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
         nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
-
         return output, nome_file
-
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"

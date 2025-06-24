@@ -16,18 +16,19 @@ import requests
 st.set_page_config(layout="wide")
 # Funzione per normalizzare i nomi delle società
 def normalizza_societa(nome_societa: str) -> str:
-if not nome_societa or nome_societa == "N/D":
-return nome_societa
-normalizzazione_map = {
-r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
-}
-for pattern, replacement in normalizzazione_map.items():
-if re.search(pattern, nome_societa):
-return replacement
-return nome_societa
+    if not nome_societa or nome_societa == "N/D":
+        return nome_societa
+    normalizzazione_map = {
+        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
+    }
+    for pattern, replacement in normalizzazione_map.items():
+        if re.search(pattern, nome_societa):
+            return replacement
+    return nome_societa
+
 # Dizionario delle partite IVA delle società comuni
 PIva_DATABASE = {
 "AGSM AIM ENERGIA S.P.A.": "01584620234",

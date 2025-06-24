@@ -503,6 +503,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         
+        # Imposta i margini della pagina (in centimetri, convertiti in EMU)
+        section = doc.sections[0]
+        section.left_margin = Pt(50)  # 1.75 cm
+        section.right_margin = Pt(50)  # 1.75 cm
+        section.top_margin = Pt(50)    # 1.75 cm
+        section.bottom_margin = Pt(50) # 1.75 cm
+        
         # Imposta lo stile predefinito del documento
         style = doc.styles['Normal']
         style.font.name = 'Arial'
@@ -526,24 +533,55 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Intestazione - Centrata
-        header = doc.add_paragraph()
-        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Aggiungi il logo della Repubblica Italiana
+        logo_url = "https://www.difesa.it/assets/img/e3c11b7f-6f12-48f4-aead-2e2950fbe08b.png"
         
-        header_run = header.add_run("Guardia di Finanza\n")
-        header_run.bold = True
-        header_run.font.size = Pt(20)
-        header_run.font.name = 'Arial'
-        
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-        header_run.bold = True
-        header_run.font.size = Pt(16)
-        header_run.font.name = 'Arial'
-        
-        header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
-        header_run.bold = True
-        header_run.font.size = Pt(14)
-        header_run.font.name = 'Arial'
+        try:
+            # Intestazione - Centrata
+            header = doc.add_paragraph()
+            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Aggiungi spazio prima del logo
+            header.add_run("\n\n")
+            
+            # Aggiungi il logo (circa 3x3 cm)
+            response = requests.get(logo_url)
+            if response.status_code == 200:
+                logo_stream = BytesIO(response.content)
+                header.add_run().add_picture(logo_stream, width=Pt(85), height=Pt(85))  # circa 3x3 cm
+                header.add_run("\n\n")
+            
+            header_run = header.add_run("Guardia di Finanza\n")
+            header_run.bold = True
+            header_run.font.size = Pt(20)
+            header_run.font.name = 'Arial'
+            
+            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+            header_run.bold = True
+            header_run.font.size = Pt(16)
+            header_run.font.name = 'Arial'
+            
+            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
+            header_run.bold = True
+            header_run.font.size = Pt(14)
+            header_run.font.name = 'Arial'
+        except Exception as e:
+            logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
+            # Se il logo non può essere aggiunto, continua senza di esso
+            header_run = header.add_run("Guardia di Finanza\n")
+            header_run.bold = True
+            header_run.font.size = Pt(20)
+            header_run.font.name = 'Arial'
+            
+            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+            header_run.bold = True
+            header_run.font.size = Pt(16)
+            header_run.font.name = 'Arial'
+            
+            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
+            header_run.bold = True
+            header_run.font.size = Pt(14)
+            header_run.font.name = 'Arial'
         
         # Titolo - Centrato con riquadro
         title = doc.add_paragraph()
@@ -564,10 +602,19 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
         
+        # Determina il tipo di fornitura in base alla società
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
+        tipo_fornitura = "acqua"
+        
+        # Lista di parole chiave per identificare fornitori di energia/gas
+        energia_gas_keywords = ["energia", "gas", "edison", "enel", "a2a", "agsm"]
+        if any(keyword in societa.lower() for keyword in energia_gas_keywords):
+            tipo_fornitura = "materia prima"
+        
         # Corpo del documento - Giustificato
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. -- I Reparto Ufficio Ordinamento -- "
+            "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
@@ -592,7 +639,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
         
         # Ricerca automatica P.IVA
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
         piva = dati[0].get('P.IVA')
         
         if not piva:
@@ -602,12 +648,22 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 piva = PIva_DATABASE["ACQUE SPA"]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
         
-        footer_text = (
-            f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
-            "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
-            "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-            "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
-        )
+        # Testo del footer in base al tipo di fornitura
+        if tipo_fornitura == "acqua":
+            footer_text = (
+                f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
+                "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
+                "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+            )
+        else:
+            footer_text = (
+                f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
+                "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
+                "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+            )
+            
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         
@@ -632,7 +688,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             qualifica = doc.add_paragraph()
             qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            qualifica_run = qualifica.add_run("Il Capo Sezione Infrastrutture in S.V.")
+            qualifica_run = qualifica.add_run("Il Capo Sezione Infrastruttures in S.V.")
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
             

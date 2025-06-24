@@ -684,6 +684,56 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+    """Crea un documento Word di attestazione con i dati delle bollette."""
+    try:
+        doc = Document()
+        
+        # Aggiungi titolo
+        title = doc.add_heading('Attestazione Spese', 0)
+        title.alignment = 1  # Centrato
+        
+        # Aggiungi data corrente
+        oggi = datetime.datetime.now().strftime("%d/%m/%Y")
+        doc.add_paragraph(f"Data attestazione: {oggi}\n", style='BodyText')
+        
+        # Aggiungi intestazione tabella
+        doc.add_paragraph("Di seguito si attestano le seguenti spese:\n", style='BodyText')
+        
+        # Crea tabella
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        # Intestazione tabella
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Numero Fattura'
+        hdr_cells[1].text = 'Data Fattura'
+        hdr_cells[2].text = 'Importo (€)'
+        
+        # Aggiungi dati
+        for fattura in dati:
+            row_cells = table.add_row().cells
+            row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
+            row_cells[1].text = fattura.get('Data Fattura', 'N/D')
+            row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+        
+        # Aggiungi firma
+        doc.add_paragraph("\n\n__________________________\nFirma", style='BodyText')
+        
+        # Salva in memoria
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        return output
+    except Exception as e:
+        logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
+        return None
+
+# [TUTTE LE ALTRE FUNZIONI ESISTENTI RIMANGONO INVARIATE...]
+# ... estrai_testo_da_pdf, estrai_societa, estrai_periodo, parse_date, estrai_data_fattura, 
+# ... estrai_pod_pdr, estrai_indirizzo, estrai_numero_fattura, estrai_totale_bolletta,
+# ... estrai_consumi, estrai_dati_cliente, estrai_dati, crea_excel, mostra_grafico_consumi
+
 def main():
     st.title("📊 Analizzatore Bollette Migliorato")
     st.markdown("""
@@ -806,6 +856,7 @@ def main():
         Supporta i principali fornitori italiani di luce, gas e acqua
     </div>
     """, unsafe_allow_html=True)
+
 if __name__ == "__main__":
     main()
 

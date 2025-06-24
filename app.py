@@ -16,37 +16,6 @@ import requests
 # Configurazione layout e stile Streamlit
 st.set_page_config(layout="wide")
 
-
-def determina_tipo_fornitura(testo: str, societa: str) -> str:
-    """
-    Determina il tipo di fornitura (acqua, energia, gas) in base al testo e alla società
-    """
-    testo = testo.lower()
-    societa = societa.lower()
-    
-    # Prima controlliamo parole chiave specifiche nel testo
-    if "acqua" in testo or "idrica" in testo or "idrico" in testo:
-        return "acqua"
-    if "gas" in testo or "metano" in testo or "gnl" in testo:
-        return "gas"
-    if "energia" in testo or "elettric" in testo or "kwh" in testo:
-        return "energia"
-    
-    # Poi controlliamo la società fornitrice
-    societa_acqua = ["acqua", "acque", "fiora", "gaia", "publiacqua", "nuove acque", "asa"]
-    societa_gas = ["gas", "metano"]
-    societa_energia = ["energia", "enel", "edison", "a2a", "agsm"]
-    
-    if any(keyword in societa for keyword in societa_acqua):
-        return "acqua"
-    if any(keyword in societa for keyword in societa_gas):
-        return "gas"
-    if any(keyword in societa for keyword in societa_energia):
-        return "energia"
-    
-    # Default ad acqua se non riconosciuto
-    return "acqua"
-
 # Funzione per normalizzare i nomi delle società
 def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
@@ -322,66 +291,36 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
-def estrai_consumi(testo: str, societa: str) -> str:
+def estrai_consumi(testo: str) -> str:
     try:
-        tipo_fornitura = determina_tipo_fornitura(testo, societa)
         testo_upper = testo.upper()
-        
-        # Unità di misura predefinite per tipo di fornitura
-        unita_misura = {
-            "acqua": "mc",
-            "gas": "Smc",
-            "energia": "kWh"
-        }
-        unita = unita_misura.get(tipo_fornitura, "mc")
-        
-        # Pattern specifici per tipo di fornitura
-        if tipo_fornitura == "acqua":
-            patterns = [
-                r'consumo\s*([\d\.]+)\s*mc',
-                r'Consumo\s*\n\s*(\d+)\s*mc',
-                r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
-                r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',
-                r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
-                r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',
-                r'totale\s+mc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
-                r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*mc',
-                r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-                r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-                r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
-                r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
-                r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
-            ]
-        elif tipo_fornitura == "gas":
-            patterns = [
-                r'consumo\s*([\d\.]+)\s*smc',
-                r'Consumo\s*\n\s*(\d+)\s*smc',
-                r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*smc',
-                r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*smc',
-                r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*smc',
-                r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*smc',
-                r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
-                r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*smc',
-                r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(smc|m³|metri\s*cubi)',
-                r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(smc|m³|metri\s*cubi)',
-            ]
-        else:  # energia
-            patterns = [
-                r'consumo\s*([\d\.]+)\s*kwh',
-                r'Consumo\s*\n\s*(\d+)\s*kwh',
-                r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*kwh',
-                r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*kwh',
-                r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-                r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-                r'totale\s+kwh\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
-                r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*kwh',
-                r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-                r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-                r'energia\s*attiva\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-                r'energia\s*consumata\s*[:\-]?\s*([\d\.,]+)\s*kwh',
-            ]
-        
-        # Ricerca dei consumi con i pattern appropriati
+        idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
+        if idx != -1:
+            snippet = testo_upper[idx:idx+600]
+            match = re.search(r'TOTALE COMPLESSIVO DI[:\-]?\s*([\d\.,]+)', snippet)
+            if not match:
+                match = re.search(r'TOTALE\s+QUANTITÀ[:\-]?\s*([\d\.,]+)', snippet)
+            if match:
+                try:
+                    valore = float(match.group(1).replace('.', '').replace(',', '.'))
+                    return f"{valore:.2f} Smc"
+                except:
+                    pass
+        patterns = [
+            r'consumo\s*([\d\.]+)\s*kWh',
+            r'Consumo\s*\n\s*(\d+)\s*mc',
+            r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
+            r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',
+            r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
+            r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
+            r'totale\s+consumo\s+fatturato\s+per\s+il\s+periodo\s+di\s+riferimento\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:consumo\s*fatturato|consumo\s*stimato\s*fatturato|consumo\s*totale)\s*[:\-]?\s*([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
+            r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
+            r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
+        ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)
             for match in matches:
@@ -389,33 +328,19 @@ def estrai_consumi(testo: str, societa: str) -> str:
                     valore_raw = match.group(1)
                     valore_normalizzato = valore_raw.replace('.', '').replace(',', '.')
                     consumo = float(valore_normalizzato)
+                    if len(match.groups()) > 1 and match.group(2):
+                        unita = match.group(2).lower()
+                    else:
+                        unita = "mc"
                     return f"{consumo:.2f} {unita}"
                 except (ValueError, IndexError):
                     continue
-        
-        # Fallback per pattern generici
-        fallback_patterns = [
-            r'(\d+)\s*(mc|smc|kwh)\s+Importo\s+da\s+pagare',
-            r'consumo\s*:\s*([\d\.,]+)\s*(mc|smc|kwh)',
-            r'consumi\s*[:\-]?\s*([\d\.,]+)\s*(mc|smc|kwh)'
-        ]
-        
-        for pattern in fallback_patterns:
-            match = re.search(pattern, testo, re.IGNORECASE)
-            if match:
-                try:
-                    valore_raw = match.group(1)
-                    unita_trovata = match.group(2).lower() if len(match.groups()) > 1 else unita
-                    valore_normalizzato = valore_raw.replace('.', '').replace(',', '.')
-                    consumo = float(valore_normalizzato)
-                    return f"{consumo:.2f} {unita_trovata}"
-                except (ValueError, IndexError):
-                    continue
-        
-        return "N/D"
+        fallback = re.search(r'(\d+)\s*mc\s+Importo\s+da\s+pagare', testo)
+        if fallback:
+            return f"{float(fallback.group(1)):.2f} mc"
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
-        return "N/D"
+    return "N/D"
 
 def estrai_dati_cliente(testo: str) -> str:
     try:
@@ -437,16 +362,13 @@ def estrai_dati(file) -> Dict[str, str]:
     if not testo:
         return None
     societa = estrai_societa(testo)
-    tipo_fornitura = determina_tipo_fornitura(testo, societa)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
-    consumi = estrai_consumi(testo, societa)
+    consumi = estrai_consumi(testo)
     indirizzo = estrai_indirizzo(testo)
     dati_cliente = estrai_dati_cliente(testo)
-    
     return {
         "Società": societa,
-        "Tipo Fornitura": tipo_fornitura,
         "Periodo di Riferimento": estrai_periodo(testo),
         "Data Fattura": estrai_data_fattura(testo),
         "POD": pod,

@@ -218,7 +218,7 @@ import re
 def estrai_indirizzo(testo: str) -> str:
     """
     Estrae l'indirizzo di fornitura da una bolletta, supportando diversi formati tra cui:
-    - Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
+    - Acquedotto del Fiora S.p.A. (formato "VIA XXXXX X" + "CAP CITTÀ PROV")
     - Nuove Acque S.p.A. (formato "Indirizzo fornitura" seguito da indirizzo completo)
     - GAIA S.p.A. (formato "INTESTAZIONE" seguito da indirizzo su due righe)
     - Altri formati comuni con varianti di intestazione
@@ -237,7 +237,7 @@ def estrai_indirizzo(testo: str) -> str:
         # 1. Pattern specifico per GAIA S.p.A. (indirizzo su due righe dopo "INTESTAZIONE")
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # 2. Pattern per Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
+        # 2. Pattern per Acquedotto del Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
         pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
             r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
@@ -280,7 +280,7 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_nuove_acque.group(1).strip()
             return indirizzo
         
-        # Poi prova il pattern specifico per Fiora
+        # Poi prova il pattern specifico per Acquedotto del Fiora
         match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
         if match_fiora:
             indirizzo = match_fiora.group(1).strip()

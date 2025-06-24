@@ -487,13 +487,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Pt(50)
-        section.right_margin = Pt(50)
+        section.left_margin = Pt(70)  # Aumenta lo spazio laterale
+        section.right_margin = Pt(70)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
         style = doc.styles['Normal']
         style.font.name = 'Arial'
-        style.font.size = Pt(12)
+        style.font.size = Pt(11)  # Riduci leggermente il corpo del testo
 
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
@@ -563,7 +563,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_format.space_inside = Pt(4)
         title_run = title.add_run("Dichiarazione di regolare fornitura")
         title_run.bold = True
-        title_run.font.size = Pt(12)
+        title_run.font.size = Pt(16)  # Ingrandisci la scritta
         title_run.font.name = 'Arial'
 
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
@@ -647,15 +647,15 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         if firma_selezionata == "Mar. Basile Vincenzo":
             firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n\nMar. Basile Vincenzo")
+            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\nMar. Basile Vincenzo")
             firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(12)
+            firma_run.font.size = Pt(11)
             firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         else:
             firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\n\nCap. Carla Mottola")
+            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\nCap. Carla Mottola")
             firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(12)
+            firma_run.font.size = Pt(11)
             firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = BytesIO()
@@ -667,6 +667,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 
 

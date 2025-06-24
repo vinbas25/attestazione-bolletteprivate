@@ -684,7 +684,32 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+with col3:
+    if risultati_filtrati:
+        # Aggiungi le opzioni di firma
+        st.markdown("**Seleziona firma:**")
+        firma_selezionata = st.radio(
+            "Firma attestazione",
+            options=[
+                "Mar. Basile Vincenzo",
+                "Cap. Carla Mottola"
+            ],
+            index=0,
+            label_visibility="collapsed"
+        )
+        
+        attestazione = crea_attestazione(risultati_filtrati, firma_selezionata)
+        if attestazione:
+            st.download_button(
+                label="Scarica Attestazione",
+                data=attestazione,
+                file_name="attestazione_spese.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                help="Scarica l'attestazione precompilata in formato Word"
+            )
+
+# Modifica la funzione crea_attestazione (aggiungi il parametro firma_selezionata)
+def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
         # Dizionario delle partite IVA delle società comuni
@@ -828,7 +853,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
                 run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)
         else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture")
+            firma1 = doc.add_paragraph("Il Capo Sezione Infrastruttures")
             for run in firma1.runs:
                 run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)
@@ -949,29 +974,7 @@ def main():
                         mime="text/csv",
                         help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
                     )
-            with col3:
-    if risultati_filtrati:
-        # Aggiungi le opzioni di firma
-        st.markdown("**Seleziona firma:**")
-        firma_selezionata = st.radio(
-            "Firma attestazione",
-            options=[
-                "Mar. Basile Vincenzo",
-                "Cap. Carla Mottola"
-            ],
-            index=0,
-            label_visibility="collapsed"
-        )
-        
-        attestazione = crea_attestazione(risultati_filtrati, firma_selezionata)
-        if attestazione:
-            st.download_button(
-                label="Scarica Attestazione",
-                data=attestazione,
-                file_name="attestazione_spese.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                help="Scarica l'attestazione precompilata in formato Word"
-            )
+            
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 

@@ -299,7 +299,7 @@ def determina_tipo_bolletta(societa: str, testo: str) -> str:
             return "gas"
         else:
             return "energia"
-    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia"]):
+    if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia", "acque", "asa"]):
         return "acqua"
     elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
         return "energia"

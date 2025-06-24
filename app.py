@@ -684,26 +684,17 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-
-def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+ef crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""
     try:
         doc = Document()
         
-        # Verifica dati di input
-        if not dati or not isinstance(dati, list):
-            raise ValueError("Dati fatture non validi o vuoti")
-            
-        # Estrai P.IVA con il nuovo metodo migliorato
-        piva = estrai_piva_da_documento(dati)
-        prima_fattura = dati[0]
-        
-        # Estrai data fattura
-        data_fattura_str = prima_fattura.get('Data Fattura', '')
+        # Estrai la data della prima fattura e convertila in datetime
+        data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
-
-        # Converti la data della fattura
+        
+        # Converti la data della fattura in oggetto datetime
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
@@ -784,7 +775,8 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
                         run.font.size = Pt(11)
         
         # Parte finale
-        societa = dati[0].get('Società', 'G.A.I.A. S.P.A.')
+        societa = dati[0].get('Società', 'G.A.I.A. S.P.A.') if dati else 'G.A.I.A. S.P.A.'
+        piva = dati[0].get('P.IVA', '01966240465') if dati else '01966240465'
         
         footer = doc.add_paragraph(
             f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
@@ -818,17 +810,9 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         doc.save(output)
         output.seek(0)
         return output
-        
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None
-
-
-
-# [TUTTE LE ALTRE FUNZIONI ESISTENTI RIMANGONO INVARIATE...]
-# ... estrai_testo_da_pdf, estrai_societa, estrai_periodo, parse_date, estrai_data_fattura, 
-# ... estrai_pod_pdr, estrai_indirizzo, estrai_numero_fattura, estrai_totale_bolletta,
-# ... estrai_consumi, estrai_dati_cliente, estrai_dati, crea_excel, mostra_grafico_consumi
 
 def main():
     st.title("📊 Analizzatore Bollette Migliorato")

@@ -676,74 +676,77 @@ def main():
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 
-
-
-
-    def genera_attestazione_word(dati_bollette: List[Dict[str, str]]) -> bytes:
+# Aggiungi questa funzione nella sezione delle utility functions
+def genera_attestazione_word(dati_bollette: List[Dict[str, str]]) -> bytes:
     """Genera un documento Word con l'attestazione precompilata"""
-    doc = Document()
+    try:
+        doc = Document()
+        
+        # Stile del documento
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Arial'
+        font.size = Pt(11)
+        
+        # Titolo
+        title = doc.add_heading('Attestazione Spese Documentate', level=1)
+        title.alignment = 1  # Centrato
+        
+        # Intestazione
+        doc.add_paragraph(
+            "Il sottoscritto _______________________________________________________",
+            style='Intense Quote'
+        )
+        doc.add_paragraph(
+            "residente in _______________________________________________________",
+            style='Intense Quote'
+        )
+        doc.add_paragraph().add_run(
+            "attesta di aver sostenuto le seguenti spese:\n"
+        ).bold = True
+        
+        # Tabella con i dati delle bollette
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        # Intestazione colonne
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Numero Fattura'
+        hdr_cells[1].text = 'Data Fattura'
+        hdr_cells[2].text = 'Importo (€)'
+        
+        # Formattazione intestazione
+        for cell in hdr_cells:
+            cell.paragraphs[0].runs[0].bold = True
+        
+        # Aggiungi i dati
+        for bolletta in dati_bollette:
+            row_cells = table.add_row().cells
+            row_cells[0].text = bolletta.get('Numero Fattura', 'N/D')
+            row_cells[1].text = bolletta.get('Data Fattura', 'N/D')
+            row_cells[2].text = bolletta.get('Totale (€)', 'N/D')
+        
+        # Footer
+        doc.add_paragraph("\n")
+        doc.add_paragraph(
+            f"Data: {datetime.now().strftime('%d/%m/%Y')}",
+            style='Intense Quote'
+        )
+        doc.add_paragraph(
+            "Firma ___________________________",
+            style='Intense Quote'
+        )
+        
+        # Salva in un buffer di memoria
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
+        
+        return file_stream.getvalue()
     
-    # Stile del documento
-    style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Arial'
-    font.size = Pt(11)
-    
-    # Titolo
-    title = doc.add_heading('Attestazione Spese Documentate', level=1)
-    title.alignment = 1  # Centrato
-    
-    # Intestazione
-    doc.add_paragraph(
-        "Il sottoscritto _______________________________________________________",
-        style='Intense Quote'
-    )
-    doc.add_paragraph(
-        "residente in _______________________________________________________",
-        style='Intense Quote'
-    )
-    doc.add_paragraph().add_run(
-        "attesta di aver sostenuto le seguenti spese:\n"
-    ).bold = True
-    
-    # Tabella con i dati delle bollette
-    table = doc.add_table(rows=1, cols=3)
-    table.style = 'Table Grid'
-    
-    # Intestazione colonne
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Numero Fattura'
-    hdr_cells[1].text = 'Data Fattura'
-    hdr_cells[2].text = 'Importo (€)'
-    
-    # Formattazione intestazione
-    for cell in hdr_cells:
-        cell.paragraphs[0].runs[0].bold = True
-    
-    # Aggiungi i dati
-    for bolletta in dati_bollette:
-        row_cells = table.add_row().cells
-        row_cells[0].text = bolletta.get('Numero Fattura', 'N/D')
-        row_cells[1].text = bolletta.get('Data Fattura', 'N/D')
-        row_cells[2].text = bolletta.get('Totale (€)', 'N/D')
-    
-    # Footer
-    doc.add_paragraph("\n")
-    doc.add_paragraph(
-        f"Data: {datetime.now().strftime('%d/%m/%Y')}",
-        style='Intense Quote'
-    )
-    doc.add_paragraph(
-        "Firma ___________________________",
-        style='Intense Quote'
-    )
-    
-    # Salva in un buffer di memoria
-    file_stream = io.BytesIO()
-    doc.save(file_stream)
-    file_stream.seek(0)
-    
-    return file_stream.getvalue()
+    except Exception as e:
+        logger.error(f"Errore durante la generazione dell'attestazione Word: {str(e)}")
+        raise
 
 # Modifica la funzione main() aggiungendo questa sezione prima del markdown finale
 def main():
@@ -773,27 +776,27 @@ def main():
             )
     
     with col3:  # Nuova colonna per l'attestazione
-        if risultati_filtrati:
-            # Prepara i dati per l'attestazione
-            dati_attestazione = [
-                {
+        if risultati_filtrati and st.button("Genera Attestazione Word"):
+            try:
+                # Prepara i dati per l'attestazione
+                dati_attestazione = [{
                     "Numero Fattura": b.get("Numero Fattura", "N/D"),
-                    "Data Fattura": b.get("Data Fattura", "N/D"),
+                    "Data Fattura": b.get("Data Fattura", "N/D"), 
                     "Totale (€)": b.get("Totale (€)", "N/D")
-                }
-                for b in risultati_filtrati
-            ]
-            
-            # Genera e scarica l'attestazione
-            word_data = genera_attestazione_word(dati_attestazione)
-            st.download_button(
-                label="Scarica Attestazione",
-                data=word_data,
-                file_name="attestazione_spese.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+                } for b in risultati_filtrati]
+                
+                word_data = genera_attestazione_word(dati_attestazione)
+                
+                st.download_button(
+                    label="Scarica Attestazione",
+                    data=word_data,
+                    file_name="attestazione_spese.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            except Exception as e:
+                st.error(f"Errore durante la generazione dell'attestazione: {str(e)}")
 
-    # ... [il resto del tuo codice esistente] ...
+    # ... [il resto del tuo codice esistente] ..
 
     st.markdown("---")
     st.markdown("""

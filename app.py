@@ -21,10 +21,10 @@ def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
     normalizzazione_map = {
-        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
+        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)fiora\s*spa$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)fiora\s*s\.p\.a\.$': 'Acquedotto del Fiora S.p.A.'
     }
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):
@@ -33,17 +33,17 @@ def normalizza_societa(nome_societa: str) -> str:
 
 # Dizionario delle partite IVA delle società comuni
 PIva_DATABASE = {
-    "AGSM AIM ENERGIA S.P.A.": "01584620234",
-    "A2A ENERGIA S.P.A.": "01192830172",
-    "ACQUE VERONA S.P.A.": "02352230235",
-    "ACQUE S.P.A.": "05006920482",
+    "AGSM AIM ENERGIA": "01584620234",
+    "A2A ENERGIA": "01192830172",
+    "ACQUE VERONA": "02352230235",
+    "ACQUE SPA": "05006920482",
     "ACQUEDOTTO DEL FIORA S.P.A.": "01153850523",
-    "ASA LIVORNO S.P.A.": "00102150497",
-    "ENEL ENERGIA S.P.A.": "00934061007",
-    "NUOVE ACQUE S.P.A.": "01359930482",
-    "GAIA S.P.A.": "01966240465",
-    "PUBLIACQUA S.P.A.": "01645330482",
-    "EDISON ENERGIA S.P.A.": "09514811001"
+    "ASA LIVORNO": "00102150497",
+    "ENEL ENERGIA": "00934061007",
+    "NUOVE ACQUE": "01359930482",
+    "GAIA SPA": "01966240465",
+    "PUBLIACQUA": "01645330482",
+    "EDISON ENERGIA": "09514811001"
 }
 
 st.markdown("""
@@ -72,17 +72,17 @@ MESI_MAP = {
 
 # Elenco esteso di società conosciute con regex specifiche
 SOCIETA_CONOSCIUTE = {
-    "AGSM AIM ENERGIA S.P.A.": r"AGSM\s*AIM\s*ENERGIA",
-    "A2A ENERGIA S.P.A.": r"A2A\s*ENERGIA",
-    "ACQUE VERONA S.P.A.": r"ACQUE\s*VERONA",
-    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?",
-    "ACQUEDOTTO DEL FIORA S.P.A.": r"ACQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
-    "ASA LIVORNO S.P.A.": r"ASA\s*LIVORNO",
-    "ENEL ENERGIA S.P.A.": r"ENEL\s*ENERGIA",
-    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
-    "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
-    "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
-    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA"
+    "AGSM AIM ENERGIA": r"AGSM\s*AIM",
+    "A2A ENERGIA": r"A2A\s*ENERGIA",
+    "ACQUE VERONA": r"ACQUE\s*VERONA",
+    "ACQUE SPA": r"ACQUE\s*SPA",
+    "ACQUEDOTTO DEL FIORA S.P.A.": r"AQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
+    "ASA LIVORNO": r"ASA\s*LIVORNO",
+    "ENEL ENERGIA": r"ENEL\s*ENERGIA",
+    "NUOVE ACQUE": r"NUOVE\s*ACQUE",
+    "GAIA SPA": r"GAIA\s*SPA",
+    "PUBLIACQUA": r"PUBLIACQUA",
+    "EDISON ENERGIA": r"EDISON\s*ENERGIA"
 }
 
 def estrai_testo_da_pdf(file) -> str:
@@ -291,17 +291,11 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
 
-def determina_tipo_bolletta(societa: str, testo: str) -> str:
+def determina_tipo_bolletta(societa: str) -> str:
     societa_lower = societa.lower()
-    testo_lower = testo.lower()
-    if "agsm" in societa_lower:
-        if "gas" in testo_lower:
-            return "gas"
-        else:
-            return "energia"
     if any(kw in societa_lower for kw in ["acqua", "acquedotto", "fiora", "nuove acque", "pubbliacqua", "gaia"]):
         return "acqua"
-    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison"]):
+    elif any(kw in societa_lower for kw in ["energia", "enel", "a2a", "edison", "agsm"]):
         return "energia"
     elif any(kw in societa_lower for kw in ["gas"]):
         return "gas"
@@ -391,7 +385,7 @@ def estrai_dati(file) -> Dict[str, str]:
     if not testo:
         return None
     societa = estrai_societa(testo)
-    tipo_bolletta = determina_tipo_bolletta(societa, testo)
+    tipo_bolletta = determina_tipo_bolletta(societa)
     pod = estrai_pod_pdr(testo)
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo, tipo_bolletta)
@@ -515,7 +509,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
+                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))
                 header.add_run("\n\n")
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
@@ -559,8 +553,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
-        tipo_fornitura = determina_tipo_bolletta(societa, "")
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
+        tipo_fornitura = determina_tipo_bolletta(societa)
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -587,20 +581,20 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
-                row.cells[i].width = Pt(max_length * 10)
+                row.cells[i].width = Pt(max_length * 10)  # Moltiplica per un fattore per ottenere una larghezza adeguata
         # Centra il testo nelle celle della tabella
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         # Centra la tabella nel documento
-        table.alignment = 1
+        table.alignment = 1  # 1 rappresenta l'allineamento al centro
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
             if not piva:
-                piva = PIva_DATABASE["ACQUE S.P.A."]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+                piva = PIva_DATABASE["ACQUE SPA"]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
         if tipo_fornitura == "acqua":
             footer_text = (
                 f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "

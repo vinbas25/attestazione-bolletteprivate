@@ -494,19 +494,23 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
+
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
+
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+
         if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
         elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
+
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
         try:
             header = doc.add_paragraph()
@@ -543,6 +547,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
+
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -559,8 +564,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
+
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
+
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -569,41 +576,46 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         )
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        # Creazione della tabella
+
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
-        # Intestazione tabella
+
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
-        # Aggiungi dati fatture
+
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-        # Adatta la larghezza delle colonne in base al contenuto
+
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
                 row.cells[i].width = Pt(max_length * 10)
-        # Centra il testo nelle celle della tabella
+
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        # Centra la tabella nel documento
+
         table.alignment = 1
+
         piva = dati[0].get('P.IVA')
         if not piva:
-            piva = PIva_DATABASE.get(societa.upper())
+            piva = PIva_DATABASE.get(societa)
             if not piva:
                 piva = PIva_DATABASE["ACQUE S.P.A."]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
-                f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. 12883420155 - nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" (Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
+                f"emessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
+                f"nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" "
+                f"(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
+                f"effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             )
         else:
             if tipo_fornitura == "acqua":
@@ -620,11 +632,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                     "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
+
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
         if firma_selezionata == "Mar. Basile Vincenzo":
             qualifica = doc.add_paragraph()
             qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -647,6 +662,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
+
         output = BytesIO()
         doc.save(output)
         output.seek(0)
@@ -656,6 +672,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 def main():
     st.title("📊 REPORT 2.0")

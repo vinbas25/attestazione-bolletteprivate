@@ -237,7 +237,7 @@ def estrai_indirizzo(testo: str) -> str:
         # 1. Pattern specifico per GAIA S.p.A. (indirizzo su due righe dopo "INTESTAZIONE")
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
-        # 2. Pattern per Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
+        # 2. Pattern per Acquedotto del Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
         pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
             r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
@@ -280,7 +280,7 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_nuove_acque.group(1).strip()
             return indirizzo
         
-        # Poi prova il pattern specifico per Fiora
+        # Poi prova il pattern specifico per Acquedotto del Fiora
         match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
         if match_fiora:
             indirizzo = match_fiora.group(1).strip()
@@ -307,7 +307,7 @@ def estrai_indirizzo(testo: str) -> str:
 
 # Test con diversi formati
 if __name__ == "__main__":
-    # Test caso Fiora
+    # Test caso Acquedotto del Fiora
     testo_fiora = """
     CODICE UTENZA: 200001748008
     DATI FORNITURA
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     58019 PORTO SANTO STEFANO GR
     TIPOLOGIA MISURATORE: Minuratore
     """
-    print("Test Fiora:", estrai_indirizzo(testo_fiora))  # Output: "VIA DELLA VITTORIA 8"
+    print("Test Acquedotto del Fiora:", estrai_indirizzo(testo_fiora))  # Output: "VIA DELLA VITTORIA 8"
     
     # Test caso GAIA
     testo_gaia = """
@@ -571,118 +571,6 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
             st.caption(f"Unità di misura: {unita}")
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
-
-def main():
-    st.title("📊 Analizzatore Bollette Migliorato")
-    st.markdown("""
-    **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
-    """)
-
-    # Aggiungi CSS personalizzato per allargare la visualizzazione
-    st.markdown("""
-    <style>
-    div[data-baseweb="base-input"] {
-        width: 100%;
-    }
-    div[data-testid="stDataFrame"] {
-        width: 100%;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    with st.sidebar:
-        st.header("Impostazioni")
-        mostra_grafici = st.checkbox("Mostra grafici comparativi", value=True)
-        raggruppa_societa = st.checkbox("Raggruppa per società", value=True)
-
-    file_pdf_list = st.file_uploader(
-        "Seleziona i file PDF delle bollette",
-        type=["pdf"],
-        accept_multiple_files=True,
-        help="Puoi selezionare più file contemporaneamente"
-    )
-
-    if file_pdf_list:
-        risultati = []
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        for i, file in enumerate(file_pdf_list):
-            status_text.text(f"Elaborazione {i+1}/{len(file_pdf_list)}: {file.name[:30]}...")
-            progress_bar.progress((i + 1) / len(file_pdf_list))
-            try:
-                dati = estrai_dati(file)
-                if dati:
-                    risultati.append(dati)
-            except Exception as e:
-                logger.error(f"Errore durante l'elaborazione di {file.name}: {str(e)}")
-                continue
-        progress_bar.empty()
-        if risultati:
-            status_text.success(f"✅ Elaborazione completata! {len(risultati)} file processati con successo.")
-            st.subheader("📋 Dati Estratti")
-            if raggruppa_societa:
-                societa_disponibili = sorted(list(set(d['Società'] for d in risultati if pd.notna(d['Società']) and (d['Società'] != "N/D"))))
-                if societa_disponibili:
-                    societa = st.selectbox(
-                        "Filtra per società",
-                        options=["Tutte"] + societa_disponibili,
-                        index=0
-                    )
-                    if societa != "Tutte":
-                        risultati_filtrati = [d for d in risultati if d['Società'] == societa]
-                    else:
-                        risultati_filtrati = risultati
-                else:
-                    risultati_filtrati = risultati
-                    st.warning("Nessuna società riconosciuta nei documenti")
-            else:
-                risultati_filtrati = risultati
-
-            # Utilizza st.data_editor per una migliore interazione
-            df = pd.DataFrame(risultati_filtrati)
-            st.data_editor(
-                df,
-                use_container_width=True,
-                hide_index=True,
-                disabled=True,
-                key="data_editor"
-            )
-
-            if mostra_grafici and risultati_filtrati:
-                mostra_grafico_consumi(risultati_filtrati)
-
-            st.subheader("📤 Esporta Dati")
-            col1, col2 = st.columns(2)
-            with col1:
-                excel_data = crea_excel(risultati_filtrati)
-                if excel_data:
-                    st.download_button(
-                        label="Scarica Excel",
-                        data=excel_data,
-                        file_name="report_consumi.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        help="Scarica i dati in formato Excel"
-                    )
-            with col2:
-                if risultati_filtrati:
-                    csv = pd.DataFrame(risultati_filtrati).to_csv(index=False, sep=';').encode('utf-8')
-                    st.download_button(
-                        label="Scarica CSV",
-                        data=csv,
-                        file_name="report_consumi.csv",
-                        mime="text/csv",
-                        help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
-                    )
-        else:
-            status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
-
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; font-size: 14px; color: gray;">
-        Strumento sviluppato dal Mar. Vincenzo Basile<br>
-        Supporta i principali fornitori italiani di luce, gas e acqua
-    </div>
-    """, unsafe_allow_html=True)
 
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
@@ -987,4 +875,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

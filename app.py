@@ -490,15 +490,12 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
-def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo"):
+def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
     try:
         doc = Document()
         section = doc.sections[0]
-
-        # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(80)  # Ridotto ulteriormente
-        section.right_margin = Pt(80)  # Ridotto ulteriormente
-
+        section.left_margin = Pt(80)
+        section.right_margin = Pt(80)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
 
@@ -509,6 +506,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
+
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
@@ -522,6 +520,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_attestazione = data_fattura
 
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
+
         try:
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -585,8 +584,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
+
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        body.paragraph_format.space_after = Pt(0)
+        body.paragraph_format.space_before = Pt(0)
+        body.paragraph_format.widow_control = True
 
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
@@ -613,7 +616,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         table.alignment = 1
 
-        # Ridurre lo spazio dopo la tabella
         doc.add_paragraph().paragraph_format.space_after = Pt(0)
 
         piva = dati[0].get('P.IVA')
@@ -650,12 +652,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        footer.paragraph_format.space_after = Pt(0)
+        footer.paragraph_format.space_before = Pt(0)
+        footer.paragraph_format.widow_control = True
 
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-        # Migliorare il gruppo firma incolonnandolo
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
         firma_run.font.name = 'Arial'
@@ -671,9 +675,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
+
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
         nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
+
         return output, nome_file
+
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"

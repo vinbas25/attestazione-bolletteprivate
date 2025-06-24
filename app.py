@@ -613,6 +613,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         
+        # Imposta lo stile predefinito del documento
+        style = doc.styles['Normal']
+        style.font.name = 'Arial'
+        style.font.size = Pt(12)
+        
         # Estrai la data della prima fattura
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
@@ -636,36 +641,35 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         header_run = header.add_run("Guardia di Finanza\n")
         header_run.bold = True
         header_run.font.size = Pt(14)
-        header_run.font.name = 'Times New Roman'
+        header_run.font.name = 'Arial'
         
         header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
         header_run.bold = True
         header_run.font.size = Pt(12)
-        header_run.font.name = 'Times New Roman'
+        header_run.font.name = 'Arial'
         
         header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
         header_run.bold = True
         header_run.font.size = Pt(11)
-        header_run.font.name = 'Times New Roman'
+        header_run.font.name = 'Arial'
         
         # Titolo
         title = doc.add_paragraph("Dichiarazione di regolare fornitura")
         title_run = title.runs[0]
         title_run.bold = True
         title_run.font.size = Pt(12)
-        title_run.font.name = 'Times New Roman'
-        title.alignment = 0
+        title_run.font.name = 'Arial'
+        title.alignment = 0  # Allineamento a sinistra
         
         # Corpo del documento
-        body = doc.add_paragraph(
+        body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
-        for run in body.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(11)
+        body = doc.add_paragraph(body_text)
+        body.alignment = 3  # Giustificato
         
         # Tabella fatture
         table = doc.add_table(rows=1, cols=3)
@@ -677,23 +681,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
         
-        for cell in hdr_cells:
-            for paragraph in cell.paragraphs:
-                for run in paragraph.runs:
-                    run.font.name = 'Times New Roman'
-                    run.font.size = Pt(11)
-        
         # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-            for cell in row_cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.name = 'Times New Roman'
-                        run.font.size = Pt(11)
         
         # Ricerca automatica P.IVA
         societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
@@ -708,54 +701,48 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 piva = PIva_DATABASE["GAIA SPA"]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
         
-        footer = doc.add_paragraph(
+        footer_text = (
             f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
             "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
         )
-        for run in footer.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(11)
+        footer = doc.add_paragraph(footer_text)
+        footer.alignment = 3  # Giustificato
         
         # Data e firma
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
-        for run in data_para.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(11)
+        data_para.alignment = 0  # Allineamento a sinistra
         
-        # Aggiungi la firma in base alla selezione
+        # Aggiungi la firma in basso a sinistra
         if firma_selezionata == "Mar. Basile Vincenzo":
             firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+            firma1.alignment = 0  # Allineamento a sinistra
             
             firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+            firma2.alignment = 0  # Allineamento a sinistra
         else:
             firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+            firma1.alignment = 0  # Allineamento a sinistra
             
             firma2 = doc.add_paragraph("Cap. Carla Mottola")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+            firma2.alignment = 0  # Allineamento a sinistra
         
         # Salva in memoria
         output = BytesIO()
         doc.save(output)
         output.seek(0)
-        return output
+        
+        # Genera il nome del file basato sulla società
+        nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
+        nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
+        
+        return output, nome_file
         
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
-        return None
+        return None, "attestazione.docx"
 
 def main():
     st.title("📊 REPORT 2.0")
@@ -859,30 +846,30 @@ def main():
                         help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
                     )
             with col3:
-                if risultati_filtrati:
-                    # Aggiungi le opzioni di firma
-                    st.markdown("**Seleziona firma:**")
-                    firma_selezionata = st.radio(
-                        "Firma attestazione",
-                        options=[
-                            "Mar. Basile Vincenzo",
-                            "Cap. Carla Mottola"
-                        ],
-                        index=0,
-                        label_visibility="collapsed"
-                    )
-                    
-                    attestazione = crea_attestazione(risultati_filtrati, firma_selezionata)
-                    if attestazione:
-                        st.download_button(
-                            label="Scarica Attestazione",
-                            data=attestazione,
-                            file_name="attestazione_spese.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            help="Scarica l'attestazione precompilata in formato Word"
-                        )
-                    else:
-                        st.warning("Errore nella generazione dell'attestazione")
+    if risultati_filtrati:
+        # Aggiungi le opzioni di firma
+        st.markdown("**Seleziona firma:**")
+        firma_selezionata = st.radio(
+            "Firma attestazione",
+            options=[
+                "Mar. Basile Vincenzo",
+                "Cap. Carla Mottola"
+            ],
+            index=0,
+            label_visibility="collapsed"
+        )
+        
+        attestazione, nome_file = crea_attestazione(risultati_filtrati, firma_selezionata)
+        if attestazione:
+            st.download_button(
+                label="Scarica Attestazione",
+                data=attestazione,
+                file_name=nome_file,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                help="Scarica l'attestazione precompilata in formato Word"
+            )
+        else:
+            st.warning("Errore nella generazione dell'attestazione")
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 

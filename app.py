@@ -493,7 +493,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         section.bottom_margin = Pt(50)
         style = doc.styles['Normal']
         style.font.name = 'Arial'
-        style.font.size = Pt(11)  # Riduci leggermente il corpo del testo
+        style.font.size = Pt(12)  # Riduci leggermente il corpo del testo
 
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:

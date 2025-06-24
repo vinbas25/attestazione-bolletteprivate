@@ -280,13 +280,10 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
             if match and len(match.groups()) >= 1:
-                importo = match.group(1).replace('.', '').replace(',', '.')
-                try:
-                    float(importo)
-                    valuta = match.group(2) if len(match.groups()) >= 2 and match.group(2) else "€"
-                    return importo, valuta
-                except ValueError:
-                    continue
+                importo = match.group(1).replace(',', '').replace('.', ',')
+                importo = '{:,.2f}'.format(float(importo)).replace(',', 'X').replace('.', ',').replace('X', '.')
+                valuta = match.group(2) if len(match.groups()) >= 2 and match.group(2) else "€"
+                return importo, valuta
     except Exception as e:
         logger.error(f"Errore durante l'estrazione del totale della bolletta: {str(e)}")
     return "N/D", "€"
@@ -321,11 +318,11 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
                 try:
                     valore = float(match.group(1).replace('.', '').replace(',', '.'))
                     if tipo_bolletta == "acqua":
-                        return f"{valore:.2f} mc"
+                        return f"{valore:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') + " mc"
                     elif tipo_bolletta == "energia":
-                        return f"{valore:.2f} kWh"
+                        return f"{valore:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') + " kWh"
                     elif tipo_bolletta == "gas":
-                        return f"{valore:.2f} Smc"
+                        return f"{valore:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') + " Smc"
                 except:
                     pass
         patterns = [
@@ -333,7 +330,7 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
             r'Consumo\s*\n\s*(\d+)\s*mc',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
             r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',
-            r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s*stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
             r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',
             r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
             r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
@@ -361,16 +358,15 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
                             unita = "Smc"
                         else:
                             unita = "mc"
-                    return f"{consumo:.2f} {unita}"
+                    return f"{consumo:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') + f" {unita}"
                 except (ValueError, IndexError):
                     continue
         fallback = re.search(r'(\d+)\s*mc\s+Importo\s+da\s+pagare', testo)
         if fallback:
-            return f"{float(fallback.group(1)):.2f} mc"
+            return f"{float(fallback.group(1)):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') + " mc"
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dei consumi: {str(e)}", exc_info=True)
     return "N/D"
-
 def estrai_dati_cliente(testo: str) -> str:
     try:
         patterns = [

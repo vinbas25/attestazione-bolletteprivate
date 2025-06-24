@@ -1,6 +1,7 @@
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
+import os
 import io
 import base64
 import streamlit as st
@@ -11,7 +12,6 @@ import pandas as pd
 import logging
 from typing import Optional, Dict, List, Tuple
 from io import BytesIO
-import requests
 
 # CONFIGURAZIONE LAYOUT E STILE STREAMLIT
 st.set_page_config(layout="wide")
@@ -524,8 +524,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
 
-        # Aggiungi il logo della Repubblica Italiana
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
+        # Percorso del logo locale
+        logo_path = os.path.join("assets", "logo.png")
 
         try:
             # Intestazione - Centrata
@@ -536,11 +536,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header.add_run("\n\n")
 
             # Aggiungi il logo (circa 4x4 cm)
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))  # circa 4x4 cm
+            if os.path.exists(logo_path):
+                header.add_run().add_picture(logo_path, width=Pt(113), height=Pt(113))  # circa 4x4 cm
                 header.add_run("\n\n")
+            else:
+                logger.warning(f"Logo non trovato al percorso: {logo_path}")
 
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True

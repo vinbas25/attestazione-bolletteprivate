@@ -684,7 +684,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
         # Dizionario delle partite IVA delle società comuni
@@ -693,7 +693,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             "A2A ENERGIA": "01192830172", 
             "ACQUE VERONA": "02352230235",
             "ACQUE SPA": "05006920482",
-            "ACQUEDOTTO DEL FIORA": "01153850523",
+            "AQUEDOTTO DEL FIORA": "01153850523",
             "ASA LIVORNO": "00102150497",
             "ENEL ENERGIA": "00934061007",
             "NUOVE ACQUE": "01359930482",
@@ -816,15 +816,27 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-        for run in firma1.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(11)
-        
-        firma2 = doc.add_paragraph("Mar. Basile Miricenzo")
-        for run in firma2.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(11)
+        # Aggiungi la firma in base alla selezione
+        if firma_selezionata == "Mar. Basile Vincenzo":
+            firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+            for run in firma1.runs:
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(11)
+            
+            firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
+            for run in firma2.runs:
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(11)
+        else:
+            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture")
+            for run in firma1.runs:
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(11)
+            
+            firma2 = doc.add_paragraph("in S.V. Cap. Carla Mottola")
+            for run in firma2.runs:
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(11)
         
         # Salva in memoria
         output = BytesIO()

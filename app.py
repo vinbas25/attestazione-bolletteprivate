@@ -739,29 +739,33 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         
         # Gruppo firma allineato a destra e perfettamente incolonnato
         if firma_selezionata == "Mar. Basile Vincenzo":
-            # Calcola la lunghezza della stringa più lunga per allineare
-            qualifica_text = "L'Addetto al Drappello Gestione Patrimonio Immobiliare"
-            firma_text = "Mar. Basile Vincenzo"
+            # Creazione di un paragrafo tabulato per l'allineamento preciso
+            firma_paragraph = doc.add_paragraph()
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             
-            # Aggiungi spazi per allineare a destra
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = 2  # Allineamento a destra
-            qualifica.add_run(qualifica_text)
+            # Aggiungi la qualifica con tabulazione
+            firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
             
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma.add_run(firma_text)
+            # Aggiungi un nuovo paragrafo per la firma con lo stesso allineamento
+            firma_paragraph = doc.add_paragraph()
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            firma_paragraph.paragraph_format.left_indent = Pt(0)  # Rimuovi qualsiasi indentazione
+            
+            # Calcola gli spazi necessari per l'allineamento perfetto
+            spazio_extra = " " * 4  # Regola questo valore per l'allineamento perfetto
+            firma_paragraph.add_run(f"{spazio_extra}Mar. Basile Vincenzo")
         else:
-            qualifica_text = "Il Capo Sezione Infrastrutture in S.V."
-            firma_text = "Cap. Carla Mottola"
+            # Stessa logica per l'altra firma
+            firma_paragraph = doc.add_paragraph()
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            firma_paragraph.add_run("Il Capo Sezione Infrastrutture in S.V.")
             
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = 2  # Allineamento a destra
-            qualifica.add_run(qualifica_text)
+            firma_paragraph = doc.add_paragraph()
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            firma_paragraph.paragraph_format.left_indent = Pt(0)
             
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma.add_run(firma_text)
+            spazio_extra = " " * 8  # Più spazio per allineare la firma più corta
+            firma_paragraph.add_run(f"{spazio_extra}Cap. Carla Mottola")
         
         # Salva in memoria
         output = BytesIO()

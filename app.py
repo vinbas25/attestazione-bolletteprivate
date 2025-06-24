@@ -490,6 +490,10 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
+# Configura il logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
     try:
         doc = Document()
@@ -590,6 +594,8 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         body.paragraph_format.space_after = Pt(0)
         body.paragraph_format.space_before = Pt(0)
         body.paragraph_format.widow_control = True
+        body.paragraph_format.auto_space_de = True
+        body.paragraph_format.auto_space_dn = True
 
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
@@ -655,6 +661,8 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         footer.paragraph_format.space_after = Pt(0)
         footer.paragraph_format.space_before = Pt(0)
         footer.paragraph_format.widow_control = True
+        footer.paragraph_format.auto_space_de = True
+        footer.paragraph_format.auto_space_dn = True
 
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
@@ -671,6 +679,10 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+        # Imposta la sillabazione automatica
+        settings = doc.settings
+        settings.element.set(qn('w:autoHyphenation'), '1')
 
         output = io.BytesIO()
         doc.save(output)

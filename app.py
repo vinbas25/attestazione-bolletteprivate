@@ -534,7 +534,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_attestazione = data_fattura
         
         # Aggiungi il logo della Repubblica Italiana
-        logo_url = "https://www.difesa.it/assets/img/e3c11b7f-6f12-48f4-aead-2e2950fbe08b.png"
+        logo_url = "https://upload.wikimedia.org/wikipedia/commons/0/00/Emblem_of_Italy.svg"
         
         try:
             # Intestazione - Centrata

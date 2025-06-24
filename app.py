@@ -461,6 +461,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
+
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
@@ -468,12 +469,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-        if data_fattura.weekday() == 5:
+
+        if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:
+        elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
+
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
         try:
             header = doc.add_paragraph()
@@ -510,6 +513,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
+
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -526,11 +530,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
+
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
         tipo_fornitura = "acqua"
         energia_gas_keywords = ["energia", "gas", "edison", "enel", "a2a", "agsm"]
         if any(keyword in societa.lower() for keyword in energia_gas_keywords):
             tipo_fornitura = "materia prima"
+
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -539,33 +545,43 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         )
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        # Creazione della tabella
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
-        for cell in table.columns[0].cells:
-            cell.width = Pt(100)
-        for cell in table.columns[1].cells:
-            cell.width = Pt(100)
-        for cell in table.columns[2].cells:
-            cell.width = Pt(100)
+
+        # Intestazione tabella
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+
+        # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+
+        # Adatta la larghezza delle colonne in base al contenuto
+        for i, cell in enumerate(table.columns):
+            max_length = max(len(str(row.cells[i].text)) for row in table.rows)
+            for row in table.rows:
+                row.cells[i].width = Pt(max_length * 10)  # Moltiplica per un fattore per ottenere una larghezza adeguata
+
+        # Centra il testo nelle celle della tabella
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
             if not piva:
                 piva = PIva_DATABASE["ACQUE SPA"]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
+
         if tipo_fornitura == "acqua":
             footer_text = (
                 f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
@@ -580,11 +596,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                 "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
             )
+
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
         if firma_selezionata == "Mar. Basile Vincenzo":
             qualifica = doc.add_paragraph()
             qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -607,15 +626,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
+
         output = BytesIO()
         doc.save(output)
         output.seek(0)
+
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
         nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
         return output, nome_file
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 def main():
     st.title("📊 REPORT 2.0")

@@ -601,20 +601,25 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             if not piva:
                 piva = PIva_DATABASE["ACQUE S.P.A."]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
-        if tipo_fornitura == "acqua":
+        if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
-                f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
-                "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
-                "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. 12883420155 - nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" (Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             )
         else:
-            footer_text = (
-                f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
-                "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
-                "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
-            )
+            if tipo_fornitura == "acqua":
+                footer_text = (
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                    "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
+                    "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                )
+            else:
+                footer_text = (
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                    "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
+                    "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                )
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")

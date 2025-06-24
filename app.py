@@ -161,6 +161,7 @@ def estrai_data_fattura(testo: str) -> str:
     try:
         patterns = [
             r'(?:data\s*fattura|fattura\s*del|emissione)\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
+            r'Bolletta\s*n\.\s*\d+\s*del\s*(\d{1,2})\s*(\w+)\s*(\d{4})',
             r'(?:data\s*emissione|emesso\s*il)\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
             r'\b(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})\b',
             r'\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b',

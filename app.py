@@ -685,16 +685,30 @@ def main():
     """, unsafe_allow_html=True)
 
 def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
-    """Crea un documento Word di attestazione nello stile GdF"""
+    """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
+        # Dizionario delle partite IVA delle società comuni
+        PIva_DATABASE = {
+            "AGSM AIM ENERGIA": "01584620234",
+            "A2A ENERGIA": "01192830172", 
+            "ACQUE VERONA": "02352230235",
+            "ACQUE SPA": "05006920482",
+            "AQUEDOTTO DEL FIORA": "01153850523",
+            "ASA LIVORNO": "00102150497",
+            "ENEL ENERGIA": "00934061007",
+            "NUOVE ACQUE": "01359930482",
+            "GAIA SPA": "01966240465",
+            "PUBLIACQUA": "01645330482",
+            "EDISON ENERGIA": "09514811001"
+        }
+
         doc = Document()
         
-        # Estrai la data della prima fattura e convertila in datetime
+        # Estrai la data della prima fattura
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
         
-        # Converti la data della fattura in oggetto datetime
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
@@ -731,7 +745,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Times New Roman'
-        title.alignment = 0  # Allineamento a sinistra
+        title.alignment = 0
         
         # Corpo del documento
         body = doc.add_paragraph(
@@ -754,7 +768,6 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
         
-        # Stile intestazione tabella
         for cell in hdr_cells:
             for paragraph in cell.paragraphs:
                 for run in paragraph.runs:
@@ -767,16 +780,24 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-            # Stile celle dati
             for cell in row_cells:
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.name = 'Times New Roman'
                         run.font.size = Pt(11)
         
-        # Parte finale
-        societa = dati[0].get('Società', 'G.A.I.A. S.P.A.') if dati else 'G.A.I.A. S.P.A.'
-        piva = dati[0].get('P.IVA', '01966240465') if dati else '01966240465'
+        # Ricerca automatica P.IVA
+        societa = dati[0].get('Società', 'GAIA SPA') if dati else 'GAIA SPA'
+        piva = dati[0].get('P.IVA')  # Prima verifica se è già fornita nei dati
+        
+        if not piva:
+            # Cerca nel database
+            piva = PIva_DATABASE.get(societa.upper())
+            
+            if not piva:
+                # Se non trovata, usa quella di default (GAIA)
+                piva = PIva_DATABASE["GAIA SPA"]
+                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
         
         footer = doc.add_paragraph(
             f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
@@ -788,7 +809,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        # Formatta la data dell'attestazione
+        # Data e firma
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         for run in data_para.runs:
@@ -810,12 +831,13 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         doc.save(output)
         output.seek(0)
         return output
+        
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None
 
 def main():
-    st.title("📊 Analizzatore Bollette Migliorato")
+    st.title("📊 REPORT 2.0")
     st.markdown("""
     **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
     """)

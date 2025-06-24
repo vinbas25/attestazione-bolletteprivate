@@ -694,6 +694,16 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
         
+        # Estrai la partita IVA dalla prima fattura
+        piva = dati[0].get('P.IVA') if dati else None
+        if not piva:
+            # Se non presente nei dati, prova ad estrarre dalla descrizione della società
+            societa = dati[0].get('Società', '') if dati else ''
+            if '01966240465' in societa:  # Cerca la P.IVA nel testo della società
+                piva = '01966240465'
+            else:
+                piva = 'N/D'  # Valore di default se non trovata
+        
         # Converti la data della fattura in oggetto datetime
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
@@ -776,7 +786,6 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         
         # Parte finale
         societa = dati[0].get('Società', 'G.A.I.A. S.P.A.') if dati else 'G.A.I.A. S.P.A.'
-        piva = dati[0].get('P.IVA', '01966240465') if dati else '01966240465'
         
         footer = doc.add_paragraph(
             f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
@@ -800,7 +809,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        firma2 = doc.add_paragraph("Mar.")
+        firma2 = doc.add_paragraph("Mar. Basile Miricenzo")
         for run in firma2.runs:
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)

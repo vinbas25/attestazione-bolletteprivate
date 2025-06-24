@@ -685,40 +685,75 @@ def main():
     """, unsafe_allow_html=True)
 
 def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
-    """Crea un documento Word di attestazione con i dati delle bollette."""
+    """Crea un documento Word di attestazione nello stile GdF"""
     try:
         doc = Document()
         
-        # Aggiungi titolo
-        title = doc.add_heading('Attestazione Spese', 0)
+        # Intestazione
+        header = doc.add_paragraph()
+        header_run = header.add_run("Guardia di Finanza\n")
+        header_run.bold = True
+        header_run.font.size = Pt(14)
+        
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run.bold = True
+        header_run.font.size = Pt(12)
+        
+        header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
+        header_run.bold = True
+        header_run.font.size = Pt(11)
+        
+        # Titolo
+        title = doc.add_paragraph("Dichiarazione di regolare fornitura\n")
+        title.style = "Heading 1"
         title.alignment = 1  # Centrato
         
-        # Aggiungi data corrente
-        oggi = datetime.datetime.now().strftime("%d/%m/%Y")
-        doc.add_paragraph(f"Data attestazione: {oggi}\n", style='BodyText')
+        # Corpo del documento
+        doc.add_paragraph(
+            "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
+            "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
+            "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
+            "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
+        )
         
-        # Aggiungi intestazione tabella
-        doc.add_paragraph("Di seguito si attestano le seguenti spese:\n", style='BodyText')
-        
-        # Crea tabella
+        # Tabella fatture
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         
         # Intestazione tabella
         hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Numero Fattura'
+        hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
-        hdr_cells[2].text = 'Importo (€)'
+        hdr_cells[2].text = 'Totale (€)'
         
-        # Aggiungi dati
+        # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
         
-        # Aggiungi firma
-        doc.add_paragraph("\n\n__________________________\nFirma", style='BodyText')
+        # Parte finale
+        societa = dati[0].get('Società', 'G.A.I.A. S.P.A.') if dati else 'G.A.I.A. S.P.A.'
+        doc.add_paragraph(
+            f"\nemesse dalla società {societa} si riferiscono effettivamente a "
+            "consumi di acqua effettuati dai Comandi amministrati da questo Reparto "
+            "per i fini istituzionali.\n\n"
+            "L'acqua oggetto delle prefate fatture è stata regolarmente erogata "
+            "presso i contatori richiesti dall'Amministrazione, ubicati presso "
+            "le caserme del Corpo dislocate nella Regione Toscana.\n"
+        )
+        
+        # Data e firma
+        oggi = datetime.datetime.now().strftime("%d.%m.%Y")
+        doc.add_paragraph(f"\nFirenze, {oggi}\n\n")
+        doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n")
+        doc.add_paragraph("Mar. ")
+        
+        # Stile del documento
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                run.font.name = 'Times New Roman'
         
         # Salva in memoria
         output = BytesIO()

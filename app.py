@@ -684,8 +684,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-# Modifica la funzione crea_attestazione (aggiungi il parametro firma_selezionata)
-def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
+def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
         # Dizionario delle partite IVA delle società comuni
@@ -817,27 +816,15 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             run.font.name = 'Times New Roman'
             run.font.size = Pt(11)
         
-        # Aggiungi la firma in base alla selezione
-        if firma_selezionata == "Mar. Basile Vincenzo":
-            firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-            
-            firma2 = doc.add_paragraph("Mar. Basile Vincenzo")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-        else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastruttures")
-            for run in firma1.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
-            
-            firma2 = doc.add_paragraph("in S.V. Cap. Carla Mottola")
-            for run in firma2.runs:
-                run.font.name = 'Times New Roman'
-                run.font.size = Pt(11)
+        firma1 = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+        for run in firma1.runs:
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(11)
+        
+        firma2 = doc.add_paragraph("Mar. Basile Miricenzo")
+        for run in firma2.runs:
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(11)
         
         # Salva in memoria
         output = BytesIO()
@@ -950,30 +937,17 @@ def main():
                         mime="text/csv",
                         help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
                     )
-           with col3:
-    if risultati_filtrati:
-        # Aggiungi le opzioni di firma
-        st.markdown("**Seleziona firma:**")
-        firma_selezionata = st.radio(
-            "Firma attestazione",
-            options=[
-                "Mar. Basile Vincenzo",
-                "Cap. Carla Mottola"
-            ],
-            index=0,
-            label_visibility="collapsed"
-        )
-        
-        attestazione = crea_attestazione(risultati_filtrati, firma_selezionata)
-        if attestazione:
-            st.download_button(
-                label="Scarica Attestazione",
-                data=attestazione,
-                file_name="attestazione_spese.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                help="Scarica l'attestazione precompilata in formato Word"
-            )
-
+            with col3:
+                if risultati_filtrati:
+                    attestazione = crea_attestazione(risultati_filtrati)
+                    if attestazione:
+                        st.download_button(
+                            label="Scarica Attestazione",
+                            data=attestazione,
+                            file_name="attestazione_spese.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            help="Scarica l'attestazione precompilata in formato Word"
+                        )
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 

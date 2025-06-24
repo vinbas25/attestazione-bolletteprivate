@@ -712,32 +712,37 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         footer = doc.add_paragraph(footer_text)
         footer.alignment = 3  # Giustificato
         
-        # Data e firma
+        # Data (allineata a destra)
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        
-        # Paragrafo per la data (allineato a destra)
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = 2  # Allineamento a destra
         
-        # Aggiungi la firma (allineata a destra)
+        # Gruppo firma allineato a destra e incolonnato
         if firma_selezionata == "Mar. Basile Vincenzo":
-            # Creiamo un paragrafo per la qualifica centrato
+            # Qualifica allineata a destra
             qualifica = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            qualifica.alignment = 1  # Centrato
+            qualifica.alignment = 2  # Allineamento a destra
             
-            # Creiamo un paragrafo per la firma centrato
-            firma = doc.add_paragraph("Mar. Basile Vincenzo")
-            firma.alignment = 1  # Centrato
-            firma.runs[0].bold = True  # Rende il nome in grassetto
+            # Firma allineata a destra (con spazio per la firma manuale)
+            firma = doc.add_paragraph()
+            firma.alignment = 2  # Allineamento a destra
+            firma_run = firma.add_run("Mar. Basile Vincenzo")
+            firma_run.bold = True
         else:
-            # Creiamo un paragrafo per la qualifica centrato
+            # Qualifica allineata a destra
             qualifica = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
-            qualifica.alignment = 1  # Centrato
+            qualifica.alignment = 2  # Allineamento a destra
             
-            # Creiamo un paragrafo per la firma centrato
-            firma = doc.add_paragraph("Cap. Carla Mottola")
-            firma.alignment = 1  # Centrato
-            firma.runs[0].bold = True  # Rende il nome in grassetto
+            # Firma allineata a destra (con spazio per la firma manuale)
+            firma = doc.add_paragraph()
+            firma.alignment = 2  # Allineamento a destra
+            firma_run = firma.add_run("Cap. Carla Mottola")
+            firma_run.bold = True
+        
+        # Aggiungi spazio per la firma manuale
+        firma_manuale = doc.add_paragraph()
+        firma_manuale.alignment = 2  # Allineamento a destra
+        firma_manuale.add_run("_________________________").bold = True
         
         # Salva in memoria
         output = BytesIO()

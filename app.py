@@ -676,6 +676,19 @@ def main():
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 
+
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; font-size: 14px; color: gray;">
+        Strumento sviluppato dal Mar. Vincenzo Basile<br>
+        Supporta i principali fornitori italiani di luce, gas e acqua
+    </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
+
+
 # Aggiungi questa funzione nella sezione delle utility functions
 def genera_attestazione_word(dati_bollette: List[Dict[str, str]]) -> bytes:
     """Genera un documento Word con l'attestazione precompilata"""
@@ -797,14 +810,3 @@ def main():
                 st.error(f"Errore durante la generazione dell'attestazione: {str(e)}")
 
     # ... [il resto del tuo codice esistente] ..
-
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; font-size: 14px; color: gray;">
-        Strumento sviluppato dal Mar. Vincenzo Basile<br>
-        Supporta i principali fornitori italiani di luce, gas e acqua
-    </div>
-    """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()

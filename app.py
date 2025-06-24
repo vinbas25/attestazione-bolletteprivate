@@ -533,23 +533,22 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Aggiungi il logo della Repubblica Italiana
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/0/00/Emblem_of_Italy.svg"
+# Aggiungi spazio prima del logo
+        header.add_run("\n\n")
+        
+        # Aggiungi il logo locale (circa 3x3 cm)
+        try:
+            with open("gdf_logo.png", "rb") as logo_file:
+                header.add_run().add_picture(logo_file, width=Pt(85), height=Pt(85))  # circa 3x3 cm
+                header.add_run("\n\n")
+        except Exception as e:
+            logger.error(f"Errore durante il caricamento del logo locale: {str(e)}")
+            # Se il logo non può essere aggiunto, continua senza di esso
         
         try:
             # Intestazione - Centrata
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Aggiungi spazio prima del logo
-            header.add_run("\n\n")
-            
-            # Aggiungi il logo (circa 3x3 cm)
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(85), height=Pt(85))  # circa 3x3 cm
-                header.add_run("\n\n")
             
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
@@ -682,7 +681,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             
             firma = doc.add_paragraph()
             firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")
+            firma_run = firma.add_run(" " * 5 + "Mar. Basile Vincenzo")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         else:
@@ -694,7 +693,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             
             firma = doc.add_paragraph()
             firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
+            firma_run = firma.add_run(" " * 5 + "Cap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
         

@@ -495,9 +495,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         doc = Document()
         section = doc.sections[0]
 
-        # Diminuisci i margini destro e sinistro
-        section.left_margin = Pt(50)  # Ridotto da Pt(70) a Pt(50)
-        section.right_margin = Pt(50)  # Ridotto da Pt(70) a Pt(50)
+        # Ridurre ulteriormente i margini laterali
+        section.left_margin = Pt(36)  # Ridotto ulteriormente
+        section.right_margin = Pt(36)  # Ridotto ulteriormente
 
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
@@ -612,7 +612,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         table.alignment = 1
-        doc.add_paragraph("\n")
+
+        # Ridurre lo spazio dopo la tabella
+        doc.add_paragraph().paragraph_format.space_after = Pt(0)
 
         piva = dati[0].get('P.IVA')
         if not piva:
@@ -653,18 +655,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-        if firma_selezionata == "Mar. Basile Vincenzo":
-            firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\nMar. Basile Vincenzo")
-            firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(11)
-            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        else:
-            firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\nCap. Carla Mottola")
-            firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(11)
-            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        # Migliorare il gruppo firma incolonnandolo
+        firma_paragraph = doc.add_paragraph()
+        firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+        firma_run.font.name = 'Arial'
+        firma_run.font.size = Pt(11)
+        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+        firma_paragraph = doc.add_paragraph()
+        firma_run = firma_paragraph.add_run(firma_selezionata)
+        firma_run.font.name = 'Arial'
+        firma_run.font.size = Pt(11)
+        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = io.BytesIO()
         doc.save(output)
@@ -674,7 +676,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         return output, nome_file
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
-        return None, "attestazione.docx"
+        return None, "attestazione.docx
 
 def main():
     st.title("📊 REPORT 2.0")

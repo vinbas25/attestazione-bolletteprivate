@@ -575,6 +575,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
+        # Centra la tabella nel documento
+        table.alignment = 1  # 1 rappresenta l'allineamento al centro
+
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
@@ -637,7 +640,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
-
 
 def main():
     st.title("📊 REPORT 2.0")

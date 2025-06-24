@@ -609,150 +609,92 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
-    """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
+    """Crea un documento Word di attestazione nello stile GdF con logo e formato specifico"""
     try:
         doc = Document()
         
-        # Imposta lo stile predefinito del documento
+        # Imposta lo stile predefinito
         style = doc.styles['Normal']
-        style.font.name = 'Arial'
+        style.font.name = 'Times New Roman'
         style.font.size = Pt(12)
         
-        # Estrai la data della prima fattura
-        data_fattura_str = dati[0].get('Data Fattura') if dati else None
-        if not data_fattura_str:
-            raise ValueError("Data fattura non presente nei dati")
-        
+        # Aggiungi l'immagine del simbolo della Repubblica Italiana
         try:
-            data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
-        except ValueError:
-            raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+            # Sostituisci con il path corretto dell'immagine
+            logo_path = "simbolo_repubblica.png"  # Deve essere presente nella directory
+            doc.add_picture(logo_path, width=Inches(1.0))
+            doc.add_paragraph()  # Spazio dopo l'immagine
+        except Exception as e:
+            logger.warning(f"Impossibile inserire il logo: {str(e)}")
         
-        # Regola la data per sabato/domenica
-        if data_fattura.weekday() == 5:  # Sabato
-            data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:  # Domenica
-            data_attestazione = data_fattura - datetime.timedelta(days=2)
-        else:
-            data_attestazione = data_fattura
-        
-        # Intestazione - Centrata
+        # Intestazione in grassetto
         header = doc.add_paragraph()
-        header.alignment = 1  # Centrato
-        
         header_run = header.add_run("Guardia di Finanza\n")
         header_run.bold = True
-        header_run.font.size = Pt(14)
-        header_run.font.name = 'Arial'
-        
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
         header_run.bold = True
-        header_run.font.size = Pt(12)
-        header_run.font.name = 'Arial'
-        
-        header_run = header.add_run("Ufficio Logistico – Sezione Infrastrutture\n\n")
+        header_run = header.add_run("Ufficio Logistico -- Sezione Infrastrutture\n\n")
         header_run.bold = True
-        header_run.font.size = Pt(11)
-        header_run.font.name = 'Arial'
         
-        # Titolo - Centrato
+        # Titolo in grassetto
         title = doc.add_paragraph("Dichiarazione di regolare fornitura")
-        title_run = title.runs[0]
-        title_run.bold = True
-        title_run.font.size = Pt(12)
-        title_run.font.name = 'Arial'
-        title.alignment = 1  # Centrato
+        title.runs[0].bold = True
+        title.alignment = 0  # Allineamento a sinistra
         
-        # Corpo del documento - Giustificato
+        # Corpo del documento
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – "
+            "90000/310 edizione 2011 del Comando Generale G. di F. -- I Reparto Ufficio Ordinamento -- "
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
-            "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
+            "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:"
         )
-        body = doc.add_paragraph(body_text)
-        body.alignment = 3  # Giustificato
+        doc.add_paragraph(body_text)
         
         # Tabella fatture
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
-        
-        # Intestazione tabella
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
         
-        # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
         
-        # Ricerca automatica P.IVA
-        societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
-        piva = dati[0].get('P.IVA')  # Prima verifica se è già fornita nei dati
+        # Ricerca P.IVA
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
+        piva = PIva_DATABASE.get(societa.upper(), "05006920482")
         
-        if not piva:
-            # Cerca nel database
-            piva = PIva_DATABASE.get(societa.upper())
-            
-            if not piva:
-                # Se non trovata, usa quella di default (GAIA)
-                piva = PIva_DATABASE["GAIA SPA"]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default GAIA SPA")
-        
+        # Footer
         footer_text = (
-            f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
+            f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
             "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
         )
-        footer = doc.add_paragraph(footer_text)
-        footer.alignment = 3  # Giustificato
+        doc.add_paragraph(footer_text)
         
-        # Data (allineata a destra)
-        data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
-        data_para.alignment = 2  # Allineamento a destra
+        # Data e firma
+        data_attestazione = datetime.datetime.now().strftime("%d.%m.%Y")
+        doc.add_paragraph(f"Firenze, {data_attestazione}\n")
         
-        # Gruppo firma allineato a destra e incolonnato
+        # Firma (allineata a sinistra con riga vuota)
         if firma_selezionata == "Mar. Basile Vincenzo":
-            # Qualifica allineata a destra
-            qualifica = doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            qualifica.alignment = 2  # Allineamento a destra
-            
-            # Firma allineata a destra (con spazio per la firma manuale)
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma_run = firma.add_run("Mar. Basile Vincenzo")
-            firma_run.bold = True
+            doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n")
+            doc.add_paragraph("Mar. Basile Vincenzo")
         else:
-            # Qualifica allineata a destra
-            qualifica = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
-            qualifica.alignment = 2  # Allineamento a destra
-            
-            # Firma allineata a destra (con spazio per la firma manuale)
-            firma = doc.add_paragraph()
-            firma.alignment = 2  # Allineamento a destra
-            firma_run = firma.add_run("Cap. Carla Mottola")
-            firma_run.bold = True
-        
-        # Aggiungi spazio per la firma manuale
-        firma_manuale = doc.add_paragraph()
-        firma_manuale.alignment = 2  # Allineamento a destra
-        firma_manuale.add_run("_________________________").bold = True
+            doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.\n")
+            doc.add_paragraph("Cap. Carla Mottola")
         
         # Salva in memoria
         output = BytesIO()
         doc.save(output)
         output.seek(0)
         
-        # Genera il nome del file basato sulla società
-        nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
-        nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
-        
+        nome_file = f"attestazione_{societa.replace(' ', '_')}_{datetime.datetime.now().strftime('%Y%m%d')}.docx"
         return output, nome_file
         
     except Exception as e:

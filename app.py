@@ -238,7 +238,7 @@ def estrai_indirizzo(testo: str) -> str:
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         
         # 2. Pattern per Acquedotto del Fiora S.p.A. (riga successiva a "DATI FORNITURA" o "Indirizzo")
-        pattern_fiora = (
+        pattern_acquedotto_del_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'  # Sezione di intestazione
             r'(?:.*\n)*?'  # Salta righe opzionali (non greedy)
             r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'  # Via + civico
@@ -281,9 +281,9 @@ def estrai_indirizzo(testo: str) -> str:
             return indirizzo
         
         # Poi prova il pattern specifico per Acquedotto del Fiora
-        match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
-        if match_fiora:
-            indirizzo = match_fiora.group(1).strip()
+        match_acquedotto_del_fiora = re.search(pattern_acquedotto_del_fiora, testo, re.IGNORECASE | re.MULTILINE)
+        if match_acquedotto_del_fiora:
+            indirizzo = match_acquedotto_del_fiora.group(1).strip()
             # Pulizia finale
             indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
             return indirizzo
@@ -307,15 +307,15 @@ def estrai_indirizzo(testo: str) -> str:
 
 # Test con diversi formati
 if __name__ == "__main__":
-    # Test caso Fiora
-    testo_fiora = """
+    # Test caso Acquedotto del Fiora
+    testo_acquedotto_del_fiora = """
     CODICE UTENZA: 200001748008
     DATI FORNITURA
     VIA DELLA VITTORIA 8
     58019 PORTO SANTO STEFANO GR
     TIPOLOGIA MISURATORE: Minuratore
     """
-    print("Test Fiora:", estrai_indirizzo(testo_fiora))  # Output: "VIA DELLA VITTORIA 8"
+    print("Test Acquedotto del Fiora:", estrai_indirizzo(testo_acquedotto_del_fiora))  # Output: "VIA DELLA VITTORIA 8"
     
     # Test caso GAIA
     testo_gaia = """

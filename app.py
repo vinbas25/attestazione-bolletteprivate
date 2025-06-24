@@ -684,27 +684,39 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+def estrai_piva(societa: str) -> str:
+    """Estrae la partita IVA dalla stringa della società usando regex"""
+    # Cerca un numero di 11 cifre (formato standard P.IVA italiana)
+    match = re.search(r'\b\d{11}\b', societa)
+    return match.group(0) if match else '01966240465'  # Default se non trovata
+
 def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""
     try:
         doc = Document()
         
-        # Estrai la data della prima fattura e convertila in datetime
-        data_fattura_str = dati[0].get('Data Fattura') if dati else None
+        # Verifica che ci siano dati e che la prima fattura abbia i campi necessari
+        if not dati or not isinstance(dati, list):
+            raise ValueError("Dati fatture non validi o vuoti")
+            
+        prima_fattura = dati[0]
+        if not prima_fattura:
+            raise ValueError("Prima fattura non valida")
+
+        # Estrai data fattura
+        data_fattura_str = prima_fattura.get('Data Fattura', '')
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
         
-        # Estrai la partita IVA dalla prima fattura
-        piva = dati[0].get('P.IVA') if dati else None
-        if not piva:
-            # Se non presente nei dati, prova ad estrarre dalla descrizione della società
-            societa = dati[0].get('Società', '') if dati else ''
-            if '01966240465' in societa:  # Cerca la P.IVA nel testo della società
-                piva = '01966240465'
-            else:
-                piva = 'N/D'  # Valore di default se non trovata
+        # Estrai o cerca la partita IVA
+        piva = prima_fattura.get('P.IVA', '')
+        societa = prima_fattura.get('Società', 'G.A.I.A. S.P.A.')
         
-        # Converti la data della fattura in oggetto datetime
+        if not piva:
+            # Prova a estrarre la P.IVA dal campo società se non trovata direttamente
+            piva = estrai_piva(societa)
+        
+        # Converti la data della fattura
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
@@ -785,8 +797,6 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
                         run.font.size = Pt(11)
         
         # Parte finale
-        societa = dati[0].get('Società', 'G.A.I.A. S.P.A.') if dati else 'G.A.I.A. S.P.A.'
-        
         footer = doc.add_paragraph(
             f"\nemesse dalla società {societa} – P.I. {piva} – si riferiscono effettivamente a "
             "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
@@ -819,6 +829,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         doc.save(output)
         output.seek(0)
         return output
+        
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None

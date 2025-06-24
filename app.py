@@ -938,16 +938,28 @@ def main():
                         help="Scarica i dati in formato CSV (delimitato da punto e virgola)"
                     )
             with col3:
-                if risultati_filtrati:
-                    attestazione = crea_attestazione(risultati_filtrati)
-                    if attestazione:
-                        st.download_button(
-                            label="Scarica Attestazione",
-                            data=attestazione,
-                            file_name="attestazione_spese.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            help="Scarica l'attestazione precompilata in formato Word"
-                        )
+    if risultati_filtrati:
+        # Aggiungi le opzioni di firma
+        st.markdown("**Seleziona firma:**")
+        firma_selezionata = st.radio(
+            "Firma attestazione",
+            options=[
+                "Mar. Basile Vincenzo",
+                "Cap. Carla Mottola"
+            ],
+            index=0,
+            label_visibility="collapsed"
+        )
+        
+        attestazione = crea_attestazione(risultati_filtrati, firma_selezionata)
+        if attestazione:
+            st.download_button(
+                label="Scarica Attestazione",
+                data=attestazione,
+                file_name="attestazione_spese.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                help="Scarica l'attestazione precompilata in formato Word"
+            )
         else:
             status_text.warning("⚠️ Nessun dato valido estratto dai file caricati")
 

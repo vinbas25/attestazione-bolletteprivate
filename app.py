@@ -34,7 +34,7 @@ def normalizza_societa(nome_societa: str) -> str:
 # Dizionario delle partite IVA delle società comuni
 PIva_DATABASE = {
     "AGSM AIM ENERGIA S.P.A.": "01584620234",
-    "A2A ENERGIA S.P.A.": "01192830172",
+    "A2A ENERGIA S.P.A.": "12883420155",
     "ACQUE VERONA S.P.A.": "02352230235",
     "ACQUE S.P.A.": "05006920482",
     "ACQUEDOTTO DEL FIORA S.P.A.": "01153850523",

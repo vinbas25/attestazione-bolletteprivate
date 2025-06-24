@@ -14,6 +14,41 @@ from io import BytesIO
 # CONFIGURAZIONE LAYOUT E STILE STREAMLIT
 st.set_page_config(layout="wide")
 
+# Funzione per normalizzare i nomi delle società
+def normalizza_societa(nome_societa: str) -> str:
+    """Normalizza i nomi delle società secondo gli standard richiesti"""
+    if not nome_societa or nome_societa == "N/D":
+        return nome_societa
+    
+    # Mappa per la normalizzazione dei nomi
+    normalizzazione_map = {
+        r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)fiora\s*spa$': 'Acquedotto del Fiora S.p.A.',
+        r'(?i)fiora\s*s\.p\.a\.$': 'Acquedotto del Fiora S.p.A.'
+    }
+    
+    for pattern, replacement in normalizzazione_map.items():
+        if re.search(pattern, nome_societa):
+            return replacement
+    
+    return nome_societa
+
+# Dizionario delle partite IVA delle società comuni
+PIva_DATABASE = {
+    "AGSM AIM ENERGIA": "01584620234",
+    "A2A ENERGIA": "01192830172", 
+    "ACQUE VERONA": "02352230235",
+    "ACQUE SPA": "05006920482",
+    "ACQUEDOTTO DEL FIORA S.P.A.": "01153850523",  # Partita IVA ufficiale
+    "ASA LIVORNO": "00102150497",
+    "ENEL ENERGIA": "00934061007",
+    "NUOVE ACQUE": "01359930482",
+    "GAIA SPA": "01966240465",
+    "PUBLIACQUA": "01645330482",
+    "EDISON ENERGIA": "09514811001"
+}
+
 st.markdown("""
     <style>
         /* Nasconde menu, header e footer */
@@ -47,7 +82,7 @@ SOCIETA_CONOSCIUTE = {
     "A2A ENERGIA": r"A2A\s*ENERGIA",
     "ACQUE VERONA": r"ACQUE\s*VERONA",
     "ACQUE SPA": r"ACQUE\s*SPA",
-    "AQUEDOTTO DEL FIORA": r"AQUEDOTTO\s*DEL\s*FIORA",
+    "ACQUEDOTTO DEL FIORA S.P.A.": r"AQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
     "ASA LIVORNO": r"ASA\s*LIVORNO",
     "ENEL ENERGIA": r"ENEL\s*ENERGIA",
     "NUOVE ACQUE": r"NUOVE\s*ACQUE",
@@ -55,6 +90,7 @@ SOCIETA_CONOSCIUTE = {
     "PUBLIACQUA": r"PUBLIACQUA",
     "EDISON ENERGIA": r"EDISON\s*ENERGIA"
 }
+
 
 def estrai_testo_da_pdf(file) -> str:
     """Estrae il testo da un file PDF con gestione errori migliorata."""
@@ -76,7 +112,8 @@ def estrai_societa(testo: str) -> str:
     try:
         for societa, pattern in SOCIETA_CONOSCIUTE.items():
             if re.search(pattern, testo, re.IGNORECASE):
-                return societa
+                return normalizza_societa(societa)
+        
         patterns = [
             r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|ACQUA|SPA))\b',
             r'\b(SPA|S\.P\.A\.|SRL|S\.R\.L\.)\b'
@@ -84,11 +121,10 @@ def estrai_societa(testo: str) -> str:
         for pattern in patterns:
             match = re.search(pattern, testo)
             if match:
-                return match.group(0).strip()
+                return normalizza_societa(match.group(0).strip())
     except Exception as e:
         logger.error(f"Errore durante l'estrazione della società: {str(e)}")
     return "N/D"
-
 def estrai_periodo(testo: str) -> str:
     """Estrae il periodo di riferimento con più pattern."""
     try:
@@ -575,21 +611,6 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
-        # Dizionario delle partite IVA delle società comuni
-        PIva_DATABASE = {
-            "AGSM AIM ENERGIA": "01584620234",
-            "A2A ENERGIA": "01192830172", 
-            "ACQUE VERONA": "02352230235",
-            "ACQUE SPA": "05006920482",
-            "AQUEDOTTO DEL FIORA": "01153850523",
-            "ASA LIVORNO": "00102150497",
-            "ENEL ENERGIA": "00934061007",
-            "NUOVE ACQUE": "01359930482",
-            "GAIA SPA": "01966240465",
-            "PUBLIACQUA": "01645330482",
-            "EDISON ENERGIA": "09514811001"
-        }
-
         doc = Document()
         
         # Estrai la data della prima fattura
@@ -617,7 +638,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         header_run.font.size = Pt(14)
         header_run.font.name = 'Times New Roman'
         
-        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCA\n")
         header_run.bold = True
         header_run.font.size = Pt(12)
         header_run.font.name = 'Times New Roman'
@@ -675,7 +696,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                         run.font.size = Pt(11)
         
         # Ricerca automatica P.IVA
-        societa = dati[0].get('Società', 'GAIA SPA') if dati else 'GAIA SPA'
+        societa = normalizza_societa(dati[0].get('Società', 'GAIA SPA')) if dati else 'GAIA SPA'
         piva = dati[0].get('P.IVA')  # Prima verifica se è già fornita nei dati
         
         if not piva:

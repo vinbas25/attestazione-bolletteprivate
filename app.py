@@ -496,8 +496,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         section = doc.sections[0]
 
         # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(36)  # Ridotto ulteriormente
-        section.right_margin = Pt(36)  # Ridotto ulteriormente
+        section.left_margin = Pt(38)  # Ridotto ulteriormente
+        section.right_margin = Pt(38)  # Ridotto ulteriormente
 
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)

@@ -603,6 +603,9 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         table.alignment = 1
 
+        # Aggiungi uno spazio dopo la tabella
+        doc.add_paragraph("\n")
+
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa)
@@ -617,6 +620,16 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 f"(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
                 f"effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
             )
+            footer = doc.add_paragraph(footer_text)
+            footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+            # Aggiungi la nuova riga di testo per A2A Energia
+            new_text = (
+                "L'energia elettrica oggetto della prefata fattura è stata regolarmente erogata "
+                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+            )
+            new_paragraph = doc.add_paragraph(new_text)
+            new_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         else:
             if tipo_fornitura == "acqua":
                 footer_text = (
@@ -632,9 +645,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                     "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
-
-        footer = doc.add_paragraph(footer_text)
-        footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            footer = doc.add_paragraph(footer_text)
+            footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
@@ -672,6 +684,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 
 def main():

@@ -515,7 +515,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))
+                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
                 header.add_run("\n\n")
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True

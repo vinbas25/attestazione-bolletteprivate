@@ -18,29 +18,6 @@ st.set_page_config(layout="wide")
 
 
 
-def rileva_tipo_fornitura(testo):
-    testo = testo.lower()
-    if any(kw in testo for kw in ["acqua", "idrico", "servizio idrico"]):
-        return "acqua", "mc"
-    elif any(kw in testo for kw in ["energia", "kwh", "energia elettrica"]):
-        return "energia elettrica", "kWh"
-    elif any(kw in testo for kw in ["gas", "smc", "standard metri cubi"]):
-        return "gas", "Smc"
-    else:
-        return "fornitura sconosciuta", "unità sconosciuta"
-
-# Lettura del file
-with open("10.0.txt", "r", encoding="utf-8") as f:
-    contenuto = f.read()
-
-# Identificazione tipo di fornitura e unità di misura
-tipo, unita = rileva_tipo_fornitura(contenuto)
-
-print(f"Tipo di fornitura rilevato: {tipo}")
-print(f"Unità di misura associata: {unita}")
-
-
-
 # Funzione per normalizzare i nomi delle società
 def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":

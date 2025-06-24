@@ -737,12 +737,12 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)
         else:
-            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture")
+            firma1 = doc.add_paragraph("Il Capo Sezione Infrastrutture in S.V.")
             for run in firma1.runs:
                 run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)
             
-            firma2 = doc.add_paragraph("in S.V. Cap. Carla Mottola")
+            firma2 = doc.add_paragraph("Cap. Carla Mottola")
             for run in firma2.runs:
                 run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)

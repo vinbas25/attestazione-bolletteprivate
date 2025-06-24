@@ -684,29 +684,79 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+def valida_piva_italiana(piva: str) -> bool:
+    """Verifica la validità formale di una P.IVA italiana (checksum)"""
+    if len(piva) != 11 or not piva.isdigit():
+        return False
+    
+    # Calcolo cifra di controllo
+    total = 0
+    for i in range(0, 10):
+        n = int(piva[i])
+        if i % 2 == 1:
+            n *= 2
+            if n > 9:
+                n = n // 10 + n % 10
+        total += n
+    
+    checksum = (10 - (total % 10)) % 10
+    return checksum == int(piva[-1])
+
 def trova_piva_in_testo(testo: str) -> Optional[str]:
     """Cerca una partita IVA italiana (11 cifre) in una stringa"""
-    matches = re.findall(r'(?:P\.?I\.?V\.?A\.?|P\.?I\.?|CF|IVA)\s*[:]?\s*(\d{11})', testo, re.IGNORECASE)
-    return matches[-1] if matches else None
+    # Regex più completa che cerca:
+    # 1. Dopo prefissi comuni (con varianti)
+    # 2. Sequenze di 11 cifre con possibili separatori
+    # 3. In formato libero (standalone)
+    patterns = [
+        r'(?:P\.?\s*I\.?\s*V\.?\s*A\.?|P\.?\s*I\.?|C\s*F|I\s*V\s*A)[:\s]*[\s\-]*(?:IT)?\s*([0-9]{11})\b',
+        r'\b(IT)?[0-9]{11}\b',
+        r'\b[0-9]{3}\s*[0-9]{3}\s*[0-9]{5}\b'
+    ]
+    
+    pive_trovate = set()
+    
+    for pattern in patterns:
+        matches = re.finditer(pattern, testo, re.IGNORECASE)
+        for match in matches:
+            piva_candidate = re.sub(r'[^0-9]', '', match.group(1) if match.groups() else match.group(0))
+            if len(piva_candidate) == 11 and valida_piva_italiana(piva_candidate):
+                pive_trovate.add(piva_candidate)
+    
+    # Se troviamo più P.IVA, preferiamo quelle dopo i prefissi ufficiali
+    if len(pive_trovate) == 1:
+        return pive_trovate.pop()
+    
+    # Se multiple, cerchiamo la più probabile (dopo un prefisso)
+    for piva in pive_trovate:
+        if re.search(rf'(?:P\.?I\.?V\.?A\.?|P\.?I\.?|CF|IVA)[^\d]*{piva}', testo, re.I):
+            return piva
+    
+    return pive_trovate.pop() if pive_trovate else None
 
 def estrai_piva_da_documento(dati: List[Dict[str, str]]) -> str:
     """Cerca la P.IVA in tutti i campi del documento"""
-    # Cerca prima nel campo specifico 'P.IVA'
+    # Priorità 1: Campo dedicato
     for fattura in dati:
-        if 'P.IVA' in fattura and re.match(r'^\d{11}$', str(fattura['P.IVA'])):
-            return fattura['P.IVA']
+        if 'P.IVA' in fattura:
+            piva = re.sub(r'[^0-9]', '', str(fattura['P.IVA']))
+            if len(piva) == 11 and valida_piva_italiana(piva):
+                return piva
     
-    # Cerca in tutti i campi di tutte le fatture
+    # Priorità 2: Cerca in tutti i campi
     pive_trovate = set()
     for fattura in dati:
-        for valore in fattura.values():
-            if isinstance(valore, str):
-                piva = trova_piva_in_testo(valore)
+        for key, value in fattura.items():
+            if isinstance(value, str):
+                piva = trova_piva_in_testo(value)
                 if piva:
                     pive_trovate.add(piva)
     
-    # Restituisci l'ultima P.IVA trovata o il default
-    return pive_trovate.pop() if pive_trovate else '01966240465'
+    if not pive_trovate:
+        logger.warning("Nessuna P.IVA valida trovata, usando default")
+        return '01966240465'  # Default
+    
+    return max(pive_trovate, key=lambda x: len(x))  # Prende la più lunga (più probabile)
 
 def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""
@@ -717,7 +767,7 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
         if not dati or not isinstance(dati, list):
             raise ValueError("Dati fatture non validi o vuoti")
             
-        # Estrai P.IVA da tutto il documento
+        # Estrai P.IVA con il nuovo metodo migliorato
         piva = estrai_piva_da_documento(dati)
         prima_fattura = dati[0]
         
@@ -845,6 +895,8 @@ def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None
+
+
 
 # [TUTTE LE ALTRE FUNZIONI ESISTENTI RIMANGONO INVARIATE...]
 # ... estrai_testo_da_pdf, estrai_societa, estrai_periodo, parse_date, estrai_data_fattura, 

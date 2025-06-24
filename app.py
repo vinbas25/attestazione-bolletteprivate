@@ -16,6 +16,46 @@ import requests
 # Configurazione layout e stile Streamlit
 st.set_page_config(layout="wide")
 
+def determina_tipo_fornitura(testo: str, societa: str) -> str:
+    """
+    Determina il tipo di fornitura (acqua, energia, gas) basandosi sul testo e sul nome della società
+    """
+    testo = testo.lower()
+    societa = societa.lower()
+    
+    # Cerca indicatori specifici nel testo
+    if re.search(r'\b(acqua|idrica|acquedotto|fognaria)\b', testo):
+        return "acqua"
+    if re.search(r'\b(gas|metano|gnl|gpl)\b', testo):
+        return "gas"
+    if re.search(r'\b(energia|elettrica|kwh|kilowatt)\b', testo):
+        return "energia"
+    
+    # Se non troviamo indicatori nel testo, proviamo a dedurlo dal nome della società
+    societa_acqua = ["acqua", "acque", "fiora", "gaia", "publiacqua", "nuove acque"]
+    societa_gas = ["gas", "metano", "gnl", "gpl"]
+    societa_energia = ["energia", "elettrica", "enel", "edison", "a2a", "agsm"]
+    
+    if any(keyword in societa for keyword in societa_acqua):
+        return "acqua"
+    if any(keyword in societa for keyword in societa_gas):
+        return "gas"
+    if any(keyword in societa for keyword in societa_energia):
+        return "energia"
+    
+    # Default ad acqua se non riusciamo a determinare
+    return "acqua"
+
+def get_unita_misura(tipo_fornitura: str) -> str:
+    """
+    Restituisce l'unità di misura corretta per il tipo di fornitura
+    """
+    return {
+        "acqua": "mc",
+        "energia": "kWh",
+        "gas": "Smc"
+    }.get(tipo_fornitura.lower(), "mc")
+
 # Funzione per normalizzare i nomi delle società
 def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":

@@ -11,6 +11,7 @@ import pandas as pd
 import logging
 from typing import Optional, Dict, List, Tuple
 from io import BytesIO
+import requests
 
 # CONFIGURAZIONE LAYOUT E STILE STREAMLIT
 st.set_page_config(layout="wide")
@@ -533,55 +534,37 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         else:
             data_attestazione = data_fattura
         
-        # Aggiungi il logo della Repubblica Italiana
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/0/00/Emblem_of_Italy.svg"
+        # Intestazione - Centrata
+        header = doc.add_paragraph()
+        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
+        # Aggiungi spazio prima del logo
+        header.add_run("\n\n")
+        
+        # Aggiungi il logo GDF (4x4 cm)
         try:
-            # Intestazione - Centrata
-            header = doc.add_paragraph()
-            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Aggiungi spazio prima del logo
+            logo_gdf = "gdf_logo.png"  # Assicurati che il file sia nella stessa directory
+            header.add_run().add_picture(logo_gdf, width=Pt(113), height=Pt(113))  # 4 cm = ~113 pt
             header.add_run("\n\n")
-            
-            # Aggiungi il logo (circa 3x3 cm)
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(85), height=Pt(85))  # circa 3x3 cm
-                header.add_run("\n\n")
-            
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
         except Exception as e:
-            logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
-            # Se il logo non può essere aggiunto, continua senza di esso
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
+            logger.error(f"Errore durante l'aggiunta del logo GDF: {str(e)}")
+            # Continua senza logo se non trovato
+            pass
             
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
+        header_run = header.add_run("Guardia di Finanza\n")
+        header_run.bold = True
+        header_run.font.size = Pt(20)
+        header_run.font.name = 'Arial'
+        
+        header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run.bold = True
+        header_run.font.size = Pt(16)
+        header_run.font.name = 'Arial'
+        
+        header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
+        header_run.bold = True
+        header_run.font.size = Pt(14)
+        header_run.font.name = 'Arial'
         
         # Titolo - Centrato con riquadro
         title = doc.add_paragraph()
@@ -621,22 +604,35 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         
-        # Tabella fatture
+        # Tabella fatture - Modificata per colonne riordinate e centrate
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
+        table.autofit = False
+
+        # Imposta larghezza colonne (più strette)
+        for cell in table.rows[0].cells:
+            cell.width = Pt(100)  # Larghezza ridotta
         
-        # Intestazione tabella
+        # Intestazione tabella centrata
         hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'N. Documento'
-        hdr_cells[1].text = 'Data Fattura'
+        hdr_cells[0].text = 'Data Fattura'
+        hdr_cells[1].text = 'N. Documento'
         hdr_cells[2].text = 'Totale (€)'
+
+        # Centra il testo in tutte le celle
+        for cell in hdr_cells:
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        # Aggiungi dati fatture
+        # Aggiungi dati fatture con testo centrato
         for fattura in dati:
             row_cells = table.add_row().cells
-            row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
-            row_cells[1].text = fattura.get('Data Fattura', 'N/D')
+            row_cells[0].text = fattura.get('Data Fattura', 'N/D')
+            row_cells[1].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+
+        # Centra il testo in tutte le celle
+            for cell in row_cells:
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         
         # Ricerca automatica P.IVA
         piva = dati[0].get('P.IVA')

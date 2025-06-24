@@ -1,6 +1,6 @@
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor  # Aggiunto RGBColor qui
 import io
 import base64
 import streamlit as st
@@ -11,6 +11,7 @@ import pandas as pd
 import logging
 from typing import Optional, Dict, List, Tuple
 from io import BytesIO
+
 
 # CONFIGURAZIONE LAYOUT E STILE STREAMLIT
 st.set_page_config(layout="wide")

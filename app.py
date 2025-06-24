@@ -748,7 +748,7 @@ def main():
         oggi = datetime.datetime.now().strftime("%d.%m.%Y")
         doc.add_paragraph(f"\nFirenze, {oggi}\n\n")
         doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n")
-        doc.add_paragraph("Mar. ")
+        doc.add_paragraph("Mar. Basile Miricenzo")
         
         # Stile del documento
         for paragraph in doc.paragraphs:
@@ -763,7 +763,6 @@ def main():
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None
-
 def main():
     st.title("📊 Analizzatore Bollette Migliorato")
     st.markdown("""

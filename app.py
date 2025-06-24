@@ -4,7 +4,7 @@ from docx.shared import Pt, RGBColor
 import io
 import base64
 import streamlit as st
-import fitz  # PyMuPDF
+import fitz
 import re
 import datetime
 import pandas as pd
@@ -13,27 +13,22 @@ from typing import Optional, Dict, List, Tuple
 from io import BytesIO
 import requests
 
-# CONFIGURAZIONE LAYOUT E STILE STREAMLIT
+# Configurazione layout e stile Streamlit
 st.set_page_config(layout="wide")
 
 # Funzione per normalizzare i nomi delle società
 def normalizza_societa(nome_societa: str) -> str:
-    """Normalizza i nomi delle società secondo gli standard richiesti"""
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
-
-    # Mappa per la normalizzazione dei nomi
     normalizzazione_map = {
         r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
         r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'Acquedotto del Fiora S.p.A.',
         r'(?i)fiora\s*spa$': 'Acquedotto del Fiora S.p.A.',
         r'(?i)fiora\s*s\.p\.a\.$': 'Acquedotto del Fiora S.p.A.'
     }
-
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):
             return replacement
-
     return nome_societa
 
 # Dizionario delle partite IVA delle società comuni
@@ -53,12 +48,9 @@ PIva_DATABASE = {
 
 st.markdown("""
     <style>
-        /* Nasconde menu, header e footer */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-
-        /* Riduce padding per sfruttare tutto lo spazio */
         .main .block-container {
             padding-top: 1rem;
             padding-right: 1rem;
@@ -94,7 +86,6 @@ SOCIETA_CONOSCIUTE = {
 }
 
 def estrai_testo_da_pdf(file) -> str:
-    """Estrae il testo da un file PDF con gestione errori migliorata."""
     try:
         doc = fitz.open(stream=file.read(), filetype="pdf")
         testo = ""
@@ -109,12 +100,10 @@ def estrai_testo_da_pdf(file) -> str:
         return ""
 
 def estrai_societa(testo: str) -> str:
-    """Estrae la società con precisione migliorata."""
     try:
         for societa, pattern in SOCIETA_CONOSCIUTE.items():
             if re.search(pattern, testo, re.IGNORECASE):
                 return normalizza_societa(societa)
-
         patterns = [
             r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|ACQUA|SPA))\b',
             r'\b(SPA|S\.P\.A\.|SRL|S\.R\.L\.)\b'
@@ -128,13 +117,12 @@ def estrai_societa(testo: str) -> str:
     return "N/D"
 
 def estrai_periodo(testo: str) -> str:
-    """Estrae il periodo di riferimento con più pattern."""
     try:
         patterns = [
             r'dal\s+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s+al\s+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'periodo\s+di\s+riferimento\s*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*-\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'Periodo di riferimento\s*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*-\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
-            r'rif\.\s*periodo\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*al\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
+            r'rif\.\s*periodo\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s+al\s+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})',
             r'dal\s+(\d{1,2}/\d{1,2}/\d{4})\s+al\s+(\d{1,2}/\d{1,2}/\d{4})',
             r'Periodo di riferimento\s+(\d{1,2}/\d{1,2}/\d{4}\s*-\s*\d{1,2}/\d{1,2}/\d{4})',
             r'Periodo\s*:\s*(\d{1,2}/\d{1,2}/\d{4})\s*-\s*(\d{1,2}/\d{1,2}/\d{4})',
@@ -153,7 +141,6 @@ def estrai_periodo(testo: str) -> str:
     return "N/D"
 
 def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
-    """Parsing data migliorato con più formati supportati."""
     try:
         giorno = int(g)
         if m.isdigit():
@@ -171,7 +158,6 @@ def parse_date(g: str, m: str, y: str) -> Optional[datetime.date]:
     return None
 
 def estrai_data_fattura(testo: str) -> str:
-    """Estrae la data della fattura con più pattern e fallback."""
     try:
         patterns = [
             r'(?:data\s*fattura|fattura\s*del|emissione)\s*[:\-]?\s*(\d{1,2})[\/\-\.\s](\d{1,2}|\w+)[\/\-\.\s](\d{2,4})',
@@ -193,7 +179,6 @@ def estrai_data_fattura(testo: str) -> str:
     return "N/D"
 
 def estrai_pod_pdr(testo: str) -> str:
-    """Estrae POD o PDR unificato con pattern specifici."""
     try:
         pod_patterns = [
             r'POD\s*[:\-]?\s*([A-Z0-9]{14,16})',
@@ -222,22 +207,25 @@ def estrai_pod_pdr(testo: str) -> str:
     return "N/D"
 
 def estrai_indirizzo(testo: str) -> str:
-    """Estrae l'indirizzo di fornitura da una bolletta."""
     try:
-        # Pattern specifico per Nuove Acque S.p.A.
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
-
-        # Pattern specifico per GAIA S.p.A.
+        match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
+        if match_nuove_acque:
+            return match_nuove_acque.group(1).strip()
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
-
-        # Pattern per Acquedotto del Fiora S.p.A.
+        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
+        if match_gaia:
+            return match_gaia.group(2).strip()
         pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'
             r'(?:.*\n)*?'
             r'((?:VIA|CORSO|PIAZZA|STRADA|V\.|C\.SO|P\.ZA)\s?.+?\d{1,5}(?:\s*[A-Za-z]?)?)\b'
         )
-
-        # Pattern generici
+        match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
+        if match_fiora:
+            indirizzo = match_fiora.group(1).strip()
+            indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
+            return indirizzo
         patterns_generici = [
             r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
@@ -245,24 +233,6 @@ def estrai_indirizzo(testo: str) -> str:
             r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
-        # Prova prima il pattern specifico per Nuove Acque
-        match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
-        if match_nuove_acque:
-            return match_nuove_acque.group(1).strip()
-
-        # Poi prova il pattern specifico per GAIA
-        match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
-        if match_gaia:
-            return match_gaia.group(2).strip()
-
-        # Poi prova il pattern specifico per Acquedotto del Fiora
-        match_fiora = re.search(pattern_fiora, testo, re.IGNORECASE | re.MULTILINE)
-        if match_fiora:
-            indirizzo = match_fiora.group(1).strip()
-            indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
-            return indirizzo
-
-        # Infine prova i pattern generici
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
@@ -270,15 +240,12 @@ def estrai_indirizzo(testo: str) -> str:
                 indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
                 indirizzo = re.sub(r'\s+', ' ', indirizzo)
                 return indirizzo
-
         return "N/D"
-
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
-    """Estrae il numero della fattura con più pattern e validazione."""
     try:
         patterns = [
             r'Numero fattura elettronica valida ai fini fiscali\s*[:]?\s*([A-Z]{0,4}\s*[0-9\/\-]+\s*[0-9]+)',
@@ -301,7 +268,6 @@ def estrai_numero_fattura(testo: str) -> str:
     return "N/D"
 
 def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
-    """Estrae il totale e la valuta con più pattern."""
     try:
         patterns = [
             r'totale\s*(?:fattura|bolletta)\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
@@ -324,7 +290,6 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
     return "N/D", "€"
 
 def estrai_consumi(testo: str) -> str:
-    """Estrae i consumi fatturati da testo OCR o PDF."""
     try:
         testo_upper = testo.upper()
         idx = testo_upper.find("RIEPILOGO CONSUMI FATTURATI")
@@ -375,7 +340,6 @@ def estrai_consumi(testo: str) -> str:
     return "N/D"
 
 def estrai_dati_cliente(testo: str) -> str:
-    """Estrae i dati del cliente (codice cliente, partita IVA, ecc.)."""
     try:
         patterns = [
             r'(?:Numero\s*Contatore|Contatore)[\s:]*([0-9]{8,9})',
@@ -391,7 +355,6 @@ def estrai_dati_cliente(testo: str) -> str:
         return "N/D"
 
 def estrai_dati(file) -> Dict[str, str]:
-    """Estrae tutti i dati da un singolo file PDF."""
     testo = estrai_testo_da_pdf(file)
     if not testo:
         return None
@@ -415,7 +378,6 @@ def estrai_dati(file) -> Dict[str, str]:
     }
 
 def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
-    """Crea un file Excel in memoria con i dati estratti."""
     try:
         colonne_ordinate = [
             "Società",
@@ -468,7 +430,6 @@ def crea_excel(dati_lista: List[Dict[str, str]]) -> Optional[BytesIO]:
         return None
 
 def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
-    """Mostra un grafico comparativo dei consumi se disponibili."""
     try:
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:
@@ -490,91 +451,65 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo") -> Tuple[Optional[BytesIO], str]:
-    """Crea un documento Word di attestazione nello stile GdF con P.IVA automatica"""
     try:
         doc = Document()
-
-        # Imposta i margini della pagina (in centimetri, convertiti in EMU)
         section = doc.sections[0]
-        section.left_margin = Pt(50)  # 1.75 cm
-        section.right_margin = Pt(50)  # 1.75 cm
-        section.top_margin = Pt(50)    # 1.75 cm
-        section.bottom_margin = Pt(50) # 1.75 cm
-
-        # Imposta lo stile predefinito del documento
+        section.left_margin = Pt(50)
+        section.right_margin = Pt(50)
+        section.top_margin = Pt(50)
+        section.bottom_margin = Pt(50)
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
-
-        # Estrai la data della prima fattura
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
-
         try:
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-
-        # Regola la data per sabato/domenica
-        if data_fattura.weekday() == 5:  # Sabato
+        if data_fattura.weekday() == 5:
             data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:  # Domenica
+        elif data_fattura.weekday() == 6:
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
-
-        # Aggiungi il logo della Repubblica Italiana
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
-
         try:
-            # Intestazione - Centrata
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-            # Aggiungi spazio prima del logo
             header.add_run("\n\n")
-
-            # Aggiungi il logo (circa 4x4 cm)
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))  # circa 4x4 cm
+                header.add_run().add_picture(logo_stream, width=Pt(113), height=Pt(113))
                 header.add_run("\n\n")
-
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
             header_run.font.size = Pt(20)
             header_run.font.name = 'Arial'
-
             header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
             header_run.bold = True
             header_run.font.size = Pt(16)
             header_run.font.name = 'Arial'
-
             header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
         except Exception as e:
             logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
-            # Se il logo non può essere aggiunto, continua senza di esso
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
             header_run.font.size = Pt(20)
             header_run.font.name = 'Arial'
-
             header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
             header_run.bold = True
             header_run.font.size = Pt(16)
             header_run.font.name = 'Arial'
-
             header_run = header.add_run("Ufficio Logistico - Sezione Infrastruttures\n\n")
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
-
-        # Titolo - Centrato con riquadro
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -591,17 +526,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(12)
         title_run.font.name = 'Arial'
-
-        # Determina il tipo di fornitura in base alla società
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE SPA')) if dati else 'ACQUE SPA'
         tipo_fornitura = "acqua"
-
-        # Lista di parole chiave per identificare fornitori di energia/gas
         energia_gas_keywords = ["energia", "gas", "edison", "enel", "a2a", "agsm"]
         if any(keyword in societa.lower() for keyword in energia_gas_keywords):
             tipo_fornitura = "materia prima"
-
-        # Corpo del documento - Giustificato
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -610,41 +539,33 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         )
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-
-        # Tabella fatture
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
-
-        # Intestazione tabella
+        for cell in table.columns[0].cells:
+            cell.width = Pt(100)
+        for cell in table.columns[1].cells:
+            cell.width = Pt(100)
+        for cell in table.columns[2].cells:
+            cell.width = Pt(100)
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
-
-        # Aggiungi dati fatture
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-
-        # Centra il testo nelle celle della tabella
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        # Ricerca automatica P.IVA
         piva = dati[0].get('P.IVA')
-
         if not piva:
             piva = PIva_DATABASE.get(societa.upper())
-
             if not piva:
                 piva = PIva_DATABASE["ACQUE SPA"]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE SPA")
-
-        # Testo del footer in base al tipo di fornitura
         if tipo_fornitura == "acqua":
             footer_text = (
                 f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
@@ -659,23 +580,17 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                 "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
             )
-
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-
-        # Data (allineata a sinistra)
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
-        # Firma allineata a destra
         if firma_selezionata == "Mar. Basile Vincenzo":
             qualifica = doc.add_paragraph()
             qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             qualifica_run = qualifica.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-
             firma = doc.add_paragraph()
             firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")
@@ -687,33 +602,24 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             qualifica_run = qualifica.add_run("Il Capo Sezione Infrastruttures in S.V.")
             qualifica_run.font.name = 'Arial'
             qualifica_run.font.size = Pt(12)
-
             firma = doc.add_paragraph()
             firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
-
-        # Salva in memoria
         output = BytesIO()
         doc.save(output)
         output.seek(0)
-
-        # Genera il nome del file
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
         nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
-
         return output, nome_file
-
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
 
 def main():
     st.title("📊 REPORT 2.0")
-    st.markdown("""
-    **Carica una o più bollette PDF** per estrarre automaticamente i dati principali.
-    """)
+    st.markdown("**Carica una o più bollette PDF** per estrarre automaticamente i dati principali.")
     st.markdown("""
     <style>
     div[data-baseweb="base-input"] {
@@ -813,7 +719,6 @@ def main():
                         index=0,
                         label_visibility="collapsed"
                     )
-
                     attestazione, nome_file = crea_attestazione(risultati_filtrati, firma_selezionata)
                     if attestazione:
                         st.download_button(

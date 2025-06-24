@@ -684,7 +684,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-ef crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""
     try:
         doc = Document()

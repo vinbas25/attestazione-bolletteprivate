@@ -515,12 +515,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         try:
             header = doc.add_paragraph()
             header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            header.add_run("\n\n")
             response = requests.get(logo_url)
             if response.status_code == 200:
                 logo_stream = BytesIO(response.content)
                 header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-                header.add_run("\n\n")
+            header.add_run("\n\n")
             header_run = header.add_run("Guardia di Finanza\n")
             header_run.bold = True
             header_run.font.size = Pt(20)
@@ -551,6 +550,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
+        title_format.space_before = Pt(0)
+        title_format.space_after = Pt(0)
         title_format.border_top = Pt(1)
         title_format.border_bottom = Pt(1)
         title_format.border_left = Pt(1)
@@ -603,7 +604,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         table.alignment = 1
 
-        # Aggiungi uno spazio dopo la tabella
         doc.add_paragraph("\n")
 
         piva = dati[0].get('P.IVA')
@@ -615,65 +615,48 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
-                f"emessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
-                f"nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" "
-                f"(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
-                f"effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
-            )
-            footer = doc.add_paragraph(footer_text)
-            footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-
-            # Aggiungi la nuova riga di testo per A2A Energia
-            new_text = (
+                "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
+                "nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" "
+                "(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
+                "effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                 "L'energia elettrica oggetto della prefata fattura è stata regolarmente erogata "
-                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(piva)
             )
-            new_paragraph = doc.add_paragraph(new_text)
-            new_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         else:
             if tipo_fornitura == "acqua":
                 footer_text = (
-                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
                     "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
                 )
             else:
                 footer_text = (
-                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
+                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
                     "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
                 )
-            footer = doc.add_paragraph(footer_text)
-            footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        footer = doc.add_paragraph(footer_text)
+        footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n\n")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
         if firma_selezionata == "Mar. Basile Vincenzo":
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            qualifica_run = qualifica.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-            qualifica_run.font.name = 'Arial'
-            qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph()
-            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Mar. Basile Vincenzo")
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n\nMar. Basile Vincenzo")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         else:
-            qualifica = doc.add_paragraph()
-            qualifica.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            qualifica_run = qualifica.add_run("Il Capo Sezione Infrastruttures in S.V.")
-            qualifica_run.font.name = 'Arial'
-            qualifica_run.font.size = Pt(12)
-            firma = doc.add_paragraph()
-            firma.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            firma_run = firma.add_run(" " * 10 + "Cap. Carla Mottola")
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\n\nCap. Carla Mottola")
             firma_run.font.name = 'Arial'
             firma_run.font.size = Pt(12)
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = BytesIO()
         doc.save(output)

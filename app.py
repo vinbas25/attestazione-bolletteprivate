@@ -684,7 +684,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
+  def crea_attestazione(dati: List[Dict[str, str]]) -> BytesIO:
     """Crea un documento Word di attestazione nello stile GdF"""
     try:
         doc = Document()
@@ -748,7 +748,7 @@ def main():
         oggi = datetime.datetime.now().strftime("%d.%m.%Y")
         doc.add_paragraph(f"\nFirenze, {oggi}\n\n")
         doc.add_paragraph("L'Addetto al Drappello Gestione Patrimonio Immobiliare\n")
-        doc.add_paragraph("Mar. Basile Miricenzo")
+        doc.add_paragraph("Mar. ")
         
         # Stile del documento
         for paragraph in doc.paragraphs:

@@ -51,7 +51,10 @@ PIva_DATABASE = {
     "NUOVE ACQUE S.P.A.": "01359930482",
     "GAIA S.P.A.": "01966240465",
     "PUBLIACQUA S.P.A.": "01645330482",
-    "EDISON ENERGIA S.P.A.": "09514811001"
+    "EDISON ENERGIA S.P.A.": "09514811001",
+    "G.E.A.L. S.P.A.": "01494020462",
+    "Firenze Acqua SRL": "03671970485",
+    "S.E.M.P. S.R.L.": "00281510453"
 }
 
 # Configurazione del logging
@@ -76,7 +79,10 @@ SOCIETA_CONOSCIUTE = {
     "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
     "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
     "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
-    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA"
+    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA",
+    "G.E.A.L. S.P.A.": r"G\.?E\.?A\.?L\.?\s*S\.?P\.?A\.?",
+    "Firenze Acqua SRL": r"Firenze\s*Acqua\s*S\.?R\.?L\.?",
+    "S.E.M.P. S.R.L.": r"S\.?E\.?M\.?P\.?\s*S\.?R\.?L\.?"
 }
 
 def estrai_testo_da_pdf(file):
@@ -397,9 +403,9 @@ def estrai_dati(file):
         "Data Fattura": estrai_data_fattura(testo),
         "POD": pod,
         "Dati Cliente": dati_cliente,
-        "Indirizzo": indirizzo,
+        "Via": indirizzo,
         "Numero Fattura": estrai_numero_fattura(testo),
-        f"Totale ({valuta})": format_number(float(totale.replace(',', '.'))) if totale != "N/D" else totale,
+        f"Totale pagare": format_number(float(totale.replace(',', '.'))) if totale != "N/D" else totale,
         "File": file.name,
         "Consumi": consumi
     }
@@ -412,11 +418,11 @@ def crea_excel(dati_lista: List[Dict[str, str]]):
             "Data Fattura",
             "POD",
             "Dati Cliente",
-            "Indirizzo",
+            "Via",
             "Numero Fattura",
-            "Totale (€)",
-            "Consumi",
-            "File"
+            "Totale pagare",
+            "File",
+            "Consumi"
         ]
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:
@@ -579,7 +585,7 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
-            row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+            row_cells[2].text = fattura.get('Totale pagare', 'N/D')
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
@@ -630,8 +636,10 @@ def crea_attestazione(dati, firma_selezionata="Mar. Basile Vincenzo"):
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        if firma_selezionata == "Cap. Carla Mottola":
+            doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
         firma_paragraph = doc.add_paragraph()
-        firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+        firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastrutture in S.V.")
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT

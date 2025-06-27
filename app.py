@@ -50,7 +50,10 @@ PIva_DATABASE = {
     "NUOVE ACQUE S.P.A.": "01359930482",
     "GAIA S.P.A.": "01966240465",
     "PUBLIACQUA S.P.A.": "01645330482",
-    "EDISON ENERGIA S.P.A.": "09514811001"
+    "EDISON ENERGIA S.P.A.": "09514811001",
+    "G.E.A.L. S.P.A.": "01494020462",
+    "Firenze Acqua SRL": "03671970485",
+    "S.E.M.P. S.R.L.": "00281510453"
 }
 
 st.markdown("""
@@ -89,7 +92,10 @@ SOCIETA_CONOSCIUTE = {
     "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
     "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
     "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
-    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA"
+    "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA",
+    "G.E.A.L. S.P.A.": r"G\.?E\.?A\.?L\.?\s*S\.?P\.?A\.?",
+    "Firenze Acqua SRL": r"FIRENZE\s*ACQUA\s*S\.?R\.?L\.?",
+    "S.E.M.P. S.R.L.": r"S\.?E\.?M\.?P\.?\s*S\.?R\.?L\.?"
 }
 
 def estrai_testo_da_pdf(file):
@@ -428,8 +434,9 @@ def crea_excel(dati_lista: List[Dict[str, str]]):
             "Indirizzo",
             "Numero Fattura",
             "Totale (€)",
-            "Consumi",
-            "File"
+            "File",
+            "Consumi"
+            
         ]
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:

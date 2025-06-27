@@ -259,36 +259,6 @@ def estrai_indirizzo(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
 
-def estrai_indirizzo_fornitura(testo: str) -> str:
-    try:
-        pattern = r"Indirizzo di fornitura:\s*(.*)"
-        match = re.search(pattern, testo, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'indirizzo di fornitura: {str(e)}")
-    return "N/D"
-
-def estrai_consumo(testo: str) -> str:
-    try:
-        pattern = r"Consumo\s*(\d+\s*mc)"
-        match = re.search(pattern, testo, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    except Exception as e:
-        logger.error(f"Errore durante l'estrazione del consumo: {str(e)}")
-    return "N/D"
-
-def estrai_importo_da_pagare(testo: str) -> str:
-    try:
-        pattern = r"Importo da pagare\s*([\d.,]+\s*€)"
-        match = re.search(pattern, testo, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'importo da pagare: {str(e)}")
-    return "N/D"
-
 def estrai_numero_fattura(testo: str) -> str:
     try:
         patterns = [
@@ -439,11 +409,7 @@ def estrai_dati(file):
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo, tipo_bolletta)
     indirizzo = estrai_indirizzo(testo)
-    indirizzo_fornitura = estrai_indirizzo_fornitura(testo)
-    consumo = estrai_consumo(testo)
-    importo_da_pagare = estrai_importo_da_pagare(testo)
     dati_cliente = estrai_dati_cliente(testo)
-
     return {
         "Società": societa,
         "Periodo di Riferimento": estrai_periodo(testo),
@@ -451,10 +417,7 @@ def estrai_dati(file):
         "POD": pod,
         "Dati Cliente": dati_cliente,
         "Indirizzo": indirizzo,
-        "Indirizzo Fornitura": indirizzo_fornitura,
         "Numero Fattura": estrai_numero_fattura(testo),
-        "Consumo": consumo,
-        "Importo da Pagare": importo_da_pagare,
         f"Totale ({valuta})": format_number(float(totale.replace(',', '.'))) if totale != "N/D" else totale,
         "File": file.name,
         "Consumi": consumi
@@ -469,13 +432,11 @@ def crea_excel(dati_lista: List[Dict[str, str]]):
             "POD",
             "Dati Cliente",
             "Indirizzo",
-            "Indirizzo Fornitura",
             "Numero Fattura",
-            "Consumo",
-            "Importo da Pagare",
             "Totale (€)",
             "File",
             "Consumi"
+            
         ]
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:
@@ -540,13 +501,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Pt(80)
-        section.right_margin = Pt(80)
+
+        # Ridurre ulteriormente i margini laterali
+        section.left_margin = Pt(80)  # Ridotto ulteriormente
+        section.right_margin = Pt(80)  # Ridotto ulteriormente
+
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
+
         style = doc.styles['Normal']
         style.font.name = 'Arial'
         style.font.size = Pt(12)
+
         data_fattura_str = dati[0].get('Data Fattura') if dati else None
         if not data_fattura_str:
             raise ValueError("Data fattura non presente nei dati")
@@ -554,12 +520,14 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
         except ValueError:
             raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
-        if data_fattura.weekday() == 5:
+
+        if data_fattura.weekday() == 5:  # Sabato
             data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:
+        elif data_fattura.weekday() == 6:  # Domenica
             data_attestazione = data_fattura - datetime.timedelta(days=2)
         else:
             data_attestazione = data_fattura
+
         logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
         try:
             header = doc.add_paragraph()
@@ -595,6 +563,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             header_run.bold = True
             header_run.font.size = Pt(14)
             header_run.font.name = 'Arial'
+
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_format = title.paragraph_format
@@ -613,8 +582,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.bold = True
         title_run.font.size = Pt(16)
         title_run.font.name = 'Arial'
+
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
+
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -623,33 +594,42 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         )
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+
         for fattura in dati:
             row_cells = table.add_row().cells
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
                 row.cells[i].width = Pt(max_length * 10)
+
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         table.alignment = 1
+
+        # Ridurre lo spazio dopo la tabella
         doc.add_paragraph().paragraph_format.space_after = Pt(0)
+
         piva = dati[0].get('P.IVA')
         if not piva:
             piva = PIva_DATABASE.get(societa)
             if not piva:
                 piva = PIva_DATABASE["ACQUE S.P.A."]
                 logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
                 "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
@@ -674,21 +654,27 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
                     "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
                 )
+
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
         data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+        # Migliorare il gruppo firma incolonnandolo
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)
         firma_run.font.name = 'Arial'
         firma_run.font.size = Pt(12)
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)

@@ -142,7 +142,7 @@ def estrai_periodo(testo: str) -> str:
             r'Periodo fatturazione\s*:\s*(\d{1,2}/\d{1,2}/\d{4})\s*-\s*(\d{1,2}/\d{1,2}/\d{4})',
             r'dal\s+(\d{2}/\d{2}/\d{4})\s+al\s+(\d{2}/\d{2}/\d{4})',
             r'Periodo di riferimento (\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
-            r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})',
+            r'(\d{2}/\d{2}/\d{4}) - (\d{2}/\d{2}/\d{4})'
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE)
@@ -246,7 +246,6 @@ def estrai_indirizzo(testo: str) -> str:
             r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r"Indirizzo di fornitura:\s*(.*)"
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
@@ -259,6 +258,36 @@ def estrai_indirizzo(testo: str) -> str:
     except Exception as e:
         logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
+
+def estrai_indirizzo_fornitura(testo: str) -> str:
+    try:
+        pattern = r"Indirizzo di fornitura:\s*(.*)"
+        match = re.search(pattern, testo, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    except Exception as e:
+        logger.error(f"Errore durante l'estrazione dell'indirizzo di fornitura: {str(e)}")
+    return "N/D"
+
+def estrai_consumo(testo: str) -> str:
+    try:
+        pattern = r"Consumo\s*(\d+\s*mc)"
+        match = re.search(pattern, testo, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    except Exception as e:
+        logger.error(f"Errore durante l'estrazione del consumo: {str(e)}")
+    return "N/D"
+
+def estrai_importo_da_pagare(testo: str) -> str:
+    try:
+        pattern = r"Importo da pagare\s*([\d.,]+\s*€)"
+        match = re.search(pattern, testo, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    except Exception as e:
+        logger.error(f"Errore durante l'estrazione dell'importo da pagare: {str(e)}")
+    return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
     try:
@@ -286,12 +315,10 @@ def estrai_numero_fattura(testo: str) -> str:
 def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
     try:
         patterns = [
-            r'Importo da pagare\s*([\d.,]+)\s*€',
             r'totale\s*(?:fattura|bolletta)\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'importo\s*totale\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r"Importo da pagare\s*([\d.,]+\s*€)"
+            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
@@ -345,7 +372,6 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
                 except:
                     pass
         patterns = [
-            r'Consumo\s*(\d+)\s*mc',
             r'consumo\s*([\d\.]+)\s*kWh',
             r'Consumo\s*\n\s*(\d+)\s*mc',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
@@ -359,7 +385,6 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
             r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
-            r"Consumo\s*(\d+\s*mc)"
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)
@@ -414,7 +439,11 @@ def estrai_dati(file):
     totale, valuta = estrai_totale_bolletta(testo)
     consumi = estrai_consumi(testo, tipo_bolletta)
     indirizzo = estrai_indirizzo(testo)
+    indirizzo_fornitura = estrai_indirizzo_fornitura(testo)
+    consumo = estrai_consumo(testo)
+    importo_da_pagare = estrai_importo_da_pagare(testo)
     dati_cliente = estrai_dati_cliente(testo)
+
     return {
         "Società": societa,
         "Periodo di Riferimento": estrai_periodo(testo),
@@ -422,7 +451,10 @@ def estrai_dati(file):
         "POD": pod,
         "Dati Cliente": dati_cliente,
         "Indirizzo": indirizzo,
+        "Indirizzo Fornitura": indirizzo_fornitura,
         "Numero Fattura": estrai_numero_fattura(testo),
+        "Consumo": consumo,
+        "Importo da Pagare": importo_da_pagare,
         f"Totale ({valuta})": format_number(float(totale.replace(',', '.'))) if totale != "N/D" else totale,
         "File": file.name,
         "Consumi": consumi
@@ -437,10 +469,13 @@ def crea_excel(dati_lista: List[Dict[str, str]]):
             "POD",
             "Dati Cliente",
             "Indirizzo",
+            "Indirizzo Fornitura",
             "Numero Fattura",
+            "Consumo",
+            "Importo da Pagare",
             "Totale (€)",
-            "Consumi",
-            "File"
+            "File",
+            "Consumi"
         ]
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:

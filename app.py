@@ -202,6 +202,9 @@ def estrai_pod_pdr(testo: str) -> str:
             r'(?:matricola\s*contatore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9\-]{8,12})(?:\s|$)',
             r'(?:matricola\s*contatore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9]{8,14})(?:\s|$)',
             r'Contatore\s*n\.\s*(\d{6,})',
+            r'(?:matricola\s*misuratore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9]{8,12})(?:\s|$)',
+            r'(?:matricola\s*misuratore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9\-]{8,12})(?:\s|$)',
+            r'(?:matricola\s*misuratore|matr\.?\s*cont\.?|numero\s*contatore)\s*[:=\-]?\s*([A-Z0-9]{8,14})(?:\s|$)',
         ]
         for pattern in pod_patterns:
             match = re.search(pattern, testo, re.IGNORECASE)

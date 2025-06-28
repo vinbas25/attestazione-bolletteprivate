@@ -226,7 +226,7 @@ import re
 def estrai_indirizzo(testo: str) -> str:
     try:
         # Pattern per G.E.A.L. S.P.A.
-        pattern_geal = r'Indirizzo di fornitura:\s*([^\n]+)\s*\d{5}\s*[A-Z]{2}'
+        pattern_geal = r'Indirizzo di fornitura:\s*(VIA\s+\w+\s+\d+\s*\d{5}\s*[A-Z]{2})'
         match_geal = re.search(pattern_geal, testo, re.IGNORECASE)
         if match_geal:
             return match_geal.group(1).strip()

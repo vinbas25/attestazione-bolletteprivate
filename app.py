@@ -531,11 +531,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-
-        # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(80)  # Ridotto ulteriormente
-        section.right_margin = Pt(80)  # Ridotto ulteriormente
-
+        section.left_margin = Pt(80)
+        section.right_margin = Pt(80)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
 
@@ -543,56 +540,16 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         style.font.name = 'Arial'
         style.font.size = Pt(12)
 
-        data_fattura_str = dati[0].get('Data Fattura') if dati else None
-        if not data_fattura_str:
-            raise ValueError("Data fattura non presente nei dati")
-        try:
-            data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
-        except ValueError:
-            raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+        header = doc.add_paragraph()
+        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        response = requests.get("https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png")
+        if response.status_code == 200:
+            logo_stream = io.BytesIO(response.content)
+            header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
 
-        if data_fattura.weekday() == 5:  # Sabato
-            data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:  # Domenica
-            data_attestazione = data_fattura - datetime.timedelta(days=2)
-        else:
-            data_attestazione = data_fattura
-
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
-        try:
-            header = doc.add_paragraph()
-            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = io.BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-            header.add_run("\n\n")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
-        except Exception as e:
-            logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
+        header.add_run("\n\nGuardia di Finanza\n").bold = True
+        header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n").bold = True
+        header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n").bold = True
 
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -617,6 +574,25 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+
+        # Extract invoice dates and find the oldest valid date
+        invoice_dates = []
+        for fattura in dati:
+            data_fattura_str = fattura.get('Data Fattura', None)
+            if data_fattura_str and data_fattura_str != "N/D":
+                data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
+                # Adjust date if it's Saturday or Sunday
+                if data_fattura.weekday() == 5:  # Saturday
+                    data_fattura = data_fattura - datetime.timedelta(days=1)
+                elif data_fattura.weekday() == 6:  # Sunday
+                    data_fattura = data_fattura - datetime.timedelta(days=2)
+                invoice_dates.append(data_fattura)
+
+        # Use the oldest invoice date
+        if invoice_dates:
+            data_attestazione = min(invoice_dates)
+        else:
+            data_attestazione = datetime.datetime.now()
 
         for fattura in dati:
             row_cells = table.add_row().cells
@@ -682,11 +658,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             additional_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             additional_paragraph.paragraph_format.space_after = Pt(12)
 
-
         if firma_selezionata == "Cap. Carla Mottola":
             doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
 
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione}\n")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione.strftime('%d.%m.%Y')}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
         if firma_selezionata == "Cap. Carla Mottola":
@@ -707,12 +682,13 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         output.seek(0)
 
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
-        nome_file = f"attestazione_{nome_societa_pulito}_{datetime.datetime.now().strftime('%Y%m%d')}.docx"
+        nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
         return output, nome_file
 
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 
 def main():

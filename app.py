@@ -224,8 +224,9 @@ def estrai_pod_pdr(testo: str) -> str:
 import re
 
 
-def estrai_indirizzo_geal(testo: str) -> str:
+def estrai_indirizzo(testo: str) -> str:
     try:
+
         # Pattern per cercare all'interno del riquadro "DATI DELLA FORNITURA"
         pattern_dati_fornitura = r'DATI DELLA FORNITURA(.*?)(?=\n\n|\Z)'
         match_dati_fornitura = re.search(pattern_dati_fornitura, testo, re.IGNORECASE | re.DOTALL)
@@ -241,15 +242,7 @@ def estrai_indirizzo_geal(testo: str) -> str:
                 indirizzo = match_indirizzo.group(1).strip()
                 indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
                 return indirizzo
-
-        return "N/D"
-    except Exception as e:
-        print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
-        return "N/D"
-
-
-def estrai_indirizzo(testo: str) -> str:
-    try:
+ 
         # Pattern per Nuove Acque
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)

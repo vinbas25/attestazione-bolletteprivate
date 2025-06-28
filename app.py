@@ -566,10 +566,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run.font.size = Pt(16)
         
         body_text = (
-            "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
-            "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
-            "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
-            "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
+            "Si attesta l’avvenuta attività di controllo tecnico-logistica come da circolare 90000/310 edizione 2011 del Comando Generale G. di F. – I Reparto Ufficio Ordinamento – aggiornata con circolare nr. 209867/310 del 06.07.2016."
         )
 
         body = doc.add_paragraph(body_text)

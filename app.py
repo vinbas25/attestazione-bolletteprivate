@@ -228,7 +228,13 @@ def estrai_indirizzo(testo: str) -> str:
         if match_nuove_acque:
             return match_nuove_acque.group(1).strip()
 
-        pattern_geal_spa = r'Indirizzo di fornitura:\s*(?:(?:VIA|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)'
+        pattern_geal_spa = [
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+        ]
         match_nuove_acque = re.search(pattern_geal_SPA, testo, re.IGNORECASE)
         if match_geal_spa:
             return match_nuove_acque.group(1).strip()

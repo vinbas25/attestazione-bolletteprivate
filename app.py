@@ -227,7 +227,7 @@ import re
 def estrai_indirizzo(testo: str) -> str:
     try:
 
-        # Pattern per cercare all'interno del riquadro "DATI DELLA FORNITURA"
+        # Pattern per cercare all'interno del riquadro "DATI DELLA FORNITURA" PER GEAL
         pattern_dati_fornitura = r'DATI DELLA FORNITURA(.*?)(?=\n\n|\Z)'
         match_dati_fornitura = re.search(pattern_dati_fornitura, testo, re.IGNORECASE | re.DOTALL)
 
@@ -235,7 +235,7 @@ def estrai_indirizzo(testo: str) -> str:
             sezione_fornitura = match_dati_fornitura.group(1)
 
             # Pattern per cercare l'indirizzo all'interno della sezione trovata
-            pattern_indirizzo = r'(?:Indirizzo di fornitura|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|e-mail]+)'
+            pattern_indirizzo = r'(?:Indirizzo di fornitura:|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|e-mail]+)'
             match_indirizzo = re.search(pattern_indirizzo, sezione_fornitura, re.IGNORECASE)
 
             if match_indirizzo:

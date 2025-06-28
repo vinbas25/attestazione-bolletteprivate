@@ -564,19 +564,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
 
-        specific_addresses = ["VIA DELL'ANNONA", "YYYY"]
-        address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
-
-        if address_present:
-            additional_text = (
-                "Gli importi riconducibili ad utenze private di alloggi di servizio ospitati nelle caserme del "
-                "Corpo sono recuperati preventivamente mediante trattenuta mensile ai militari fruitori degli "
-                "alloggi stessi, secondo quanto comunicato con nota n.439796 datata 11.12.2024 "
-                "dell’Articolazione in intestazione, in ottemperanza a quanto disposto dal Comando Generale "
-                "– IV Reparto – con Circolare n. 190.000 del 13.06.2025.\n\n"
-            )
-            body_text += additional_text
-
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         body.paragraph_format.space_after = Pt(12)
@@ -637,7 +624,26 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         footer.paragraph_format.space_after = Pt(12)
 
+        specific_addresses = ["VIA DELL'ANNONA", "YYYY"]
+        address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
+
+        if address_present:
+            additional_text = (
+                "\nGli importi riconducibili ad utenze private di alloggi di servizio ospitati nelle caserme del "
+                "Corpo sono recuperati preventivamente mediante trattenuta mensile ai militari fruitori degli "
+                "alloggi stessi, secondo quanto comunicato con nota n.439796 datata 11.12.2024 "
+                "dell’Articolazione in intestazione, in ottemperanza a quanto disposto dal Comando Generale "
+                "– IV Reparto – con Circolare n. 190.000 del 13.06.2025."
+            )
+            additional_paragraph = doc.add_paragraph(additional_text)
+            additional_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            additional_paragraph.paragraph_format.space_after = Pt(12)
+
         data_attestazione = datetime.datetime.now().strftime("%d.%m.%Y")
+
+        if firma_selezionata == "Cap. Carla Mottola":
+            doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
+
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
@@ -645,9 +651,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             firma_paragraph = doc.add_paragraph()
             firma_run = firma_paragraph.add_run("IL CAPO SEZIONE INFRASTRUTTURE in s.v.")
             firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-            body.add_run("\nLa presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.\n")
-
         else:
             firma_paragraph = doc.add_paragraph()
             firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
@@ -668,6 +671,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 def main():
     st.title("📊 REPORT 2.0")

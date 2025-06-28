@@ -531,40 +531,49 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Pt(80)
-        section.right_margin = Pt(80)
-        section.top_margin = Pt(50)
-        section.bottom_margin = Pt(50)
+        section.left_margin = Cm(2.5)  # Standard ISO 2.5 cm
+        section.right_margin = Cm(2.5)
+        section.top_margin = Cm(2.5)
+        section.bottom_margin = Cm(2.5)
 
+        # Impostazione font principale (Times New Roman)
         style = doc.styles['Normal']
-        style.font.name = 'Arial'
+        style.font.name = 'Times New Roman'
         style.font.size = Pt(12)
 
+        # Intestazione con logo
         header = doc.add_paragraph()
-        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        header.alignment = WD_ALIGN_PARAGRAPH.LEFT
         response = requests.get("https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png")
         if response.status_code == 200:
             logo_stream = io.BytesIO(response.content)
-            header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
+            header.add_run().add_picture(logo_stream, width=Cm(1.5), height=Cm(1.7))
 
-        header_run1 = header.add_run("\n\nGuardia di Finanza\n")
+        # Testo intestazione (Arial per contrasto, più piccolo)
+        header_run1 = header.add_run("\tGuardia di Finanza\n")
+        header_run1.font.name = 'Arial'
+        header_run1.font.size = Pt(10)
         header_run1.bold = True
-        header_run1.font.size = Pt(18)
 
-        header_run2 = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run2 = header.add_run("\tREPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run2.font.name = 'Arial'
+        header_run2.font.size = Pt(10)
         header_run2.bold = True
-        header_run2.font.size = Pt(18)
 
-        header_run3 = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
+        header_run3 = header.add_run("\tUfficio Logistico - Sezione Infrastrutture\n\n")
+        header_run3.font.name = 'Arial'
+        header_run3.font.size = Pt(10)
         header_run3.bold = True
-        header_run3.font.size = Pt(16)
 
+        # Titolo principale
         title = doc.add_paragraph()
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title.alignment = WD_ALIGN_PARAGRAPH.LEFT
         title_run = title.add_run("Dichiarazione di regolare fornitura")
         title_run.bold = True
         title_run.font.size = Pt(16)
+        title.paragraph_format.space_after = Pt(24)  # Spaziatura dopo il titolo
         
+        # Corpo del testo
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -574,11 +583,21 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        body.paragraph_format.space_after = Pt(12)
+        body.paragraph_format.space_after = Pt(6)
 
-        # Create and center the table
+        # Creazione tabella
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
+        table.autofit = False
+        
+        # Stile tabella
+        table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for cell in table.rows[0].cells:
+            cell.paragraphs[0].runs[0].bold = True
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            shading_elm = parse_xml(r'<w:shd {} w:fill="F2F2F2"/>'.format(nsdecls('w')))
+            cell._tc.get_or_add_tcPr().append(shading_elm)
+
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
@@ -589,43 +608,39 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+            
+            # Allineamento celle
+            row_cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+            row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            row_cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            row_cells[2].paragraphs[0].runs[0].font.size = Pt(11)
 
-        # Center the table
-        table.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        for i, cell in enumerate(table.columns):
-            max_length = max(len(str(row.cells[i].text)) for row in table.rows)
-            for row in table.rows:
-                row.cells[i].width = Pt(max_length * 10)
-
+        # Regolazione larghezza colonne
+        widths = (Cm(3), Cm(3), Cm(3))
         for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            for idx, width in enumerate(widths):
+                row.cells[idx].width = width
 
+        # Contenuto variabile in base ai dati
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
         piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
-        # Extract invoice dates and find the oldest valid date
+        # Gestione date
         invoice_dates = []
         for fattura in dati:
             data_fattura_str = fattura.get('Data Fattura', None)
             if data_fattura_str and data_fattura_str != "N/D":
                 data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
-                # Adjust date if it's Saturday or Sunday
                 if data_fattura.weekday() == 5:  # Saturday
                     data_fattura = data_fattura - datetime.timedelta(days=1)
                 elif data_fattura.weekday() == 6:  # Sunday
                     data_fattura = data_fattura - datetime.timedelta(days=2)
                 invoice_dates.append(data_fattura)
 
-        # Use the oldest invoice date
-        if invoice_dates:
-            data_attestazione = min(invoice_dates)
-        else:
-            data_attestazione = datetime.datetime.now()
+        data_attestazione = min(invoice_dates) if invoice_dates else datetime.datetime.now()
 
+        # Testo a piè di pagina
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
                 f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
@@ -655,6 +670,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         footer.paragraph_format.space_after = Pt(12)
 
+        # Sezione indirizzi specifici
         specific_addresses = ["VIA DELL'ANNONA", "YYYY"]
         address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
 
@@ -663,17 +679,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 "\nGli importi riconducibili ad utenze private di alloggi di servizio ospitati nelle caserme del "
                 "Corpo sono recuperati preventivamente mediante trattenuta mensile ai militari fruitori degli "
                 "alloggi stessi, secondo quanto comunicato con nota n.439796 datata 11.12.2024 "
-                "dell’Articolazione in intestazione, in ottemperanza a quanto disposto dal Comando Generale "
+                "dell'Articolazione in intestazione, in ottemperanza a quanto disposto dal Comando Generale "
                 "– IV Reparto – con Circolare n. 190.000 del 13.06.2025."
             )
             additional_paragraph = doc.add_paragraph(additional_text)
             additional_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             additional_paragraph.paragraph_format.space_after = Pt(12)
 
+        # Sezione firma
         if firma_selezionata == "Cap. Carla Mottola":
             doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
 
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione.strftime('%d.%m.%Y')}\n")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione.strftime('%d/%m/%Y')}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
         if firma_selezionata == "Cap. Carla Mottola":
@@ -687,8 +704,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)
+        firma_run.bold = True
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
+        # Salvataggio documento
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)

@@ -241,13 +241,12 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_fiora.group(1).strip()
             indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
             return indirizzo
-           patterns_generici = [
-    r'Indirizzo di fornitura:\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
-    r'Indirizzo di fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
-    r'Luogo di fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
-    r'Fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
-    r'via\s+([A-Za-zÀ-Ùà-ù\s]+?\d{1,5}\s*[A-Za-z]*)',
-    r'VIA\s+([A-Za-zÀ-Ùà-ù\s]+?\d{1,5}\s*[A-Za-z]*)'
+        patterns_generici = [
+            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
@@ -290,8 +289,7 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             r'totale\s*(?:fattura|bolletta)\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'importo\s*totale\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'TOTALE\s+Scissione\s+dei\s+pagamenti\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
+            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)

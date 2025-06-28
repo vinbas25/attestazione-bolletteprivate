@@ -223,14 +223,33 @@ def estrai_pod_pdr(testo: str) -> str:
 
 import re
 
+
+def estrai_indirizzo_geal(testo: str) -> str:
+    try:
+        # Pattern per cercare all'interno del riquadro "DATI DELLA FORNITURA"
+        pattern_dati_fornitura = r'DATI DELLA FORNITURA(.*?)(?=\n\n|\Z)'
+        match_dati_fornitura = re.search(pattern_dati_fornitura, testo, re.IGNORECASE | re.DOTALL)
+
+        if match_dati_fornitura:
+            sezione_fornitura = match_dati_fornitura.group(1)
+
+            # Pattern per cercare l'indirizzo all'interno della sezione trovata
+            pattern_indirizzo = r'(?:Indirizzo di fornitura|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|email]+)'
+            match_indirizzo = re.search(pattern_indirizzo, sezione_fornitura, re.IGNORECASE)
+
+            if match_indirizzo:
+                indirizzo = match_indirizzo.group(1).strip()
+                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
+                return indirizzo
+
+        return "N/D"
+    except Exception as e:
+        print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
+        return "N/D"
+
+
 def estrai_indirizzo(testo: str) -> str:
     try:
-        # Pattern per G.E.A.L. S.P.A.
-        pattern_geal = r'Indirizzo di fornitura:\s*(VIA\s+[A-Z]+\s+\d+\s+\d{5}\s*[A-Z]{2})'
-        match_geal = re.search(pattern_geal, testo, re.IGNORECASE)
-        if match_geal:
-            return match_geal.group(1).strip()
-
         # Pattern per Nuove Acque
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)

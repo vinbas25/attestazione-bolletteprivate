@@ -234,7 +234,7 @@ def estrai_indirizzo_geal(testo: str) -> str:
             sezione_fornitura = match_dati_fornitura.group(1)
 
             # Pattern per cercare l'indirizzo all'interno della sezione trovata
-            pattern_indirizzo = r'(?:Indirizzo di fornitura|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|email]+)'
+            pattern_indirizzo = r'(?:Indirizzo di fornitura|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|e-mail]+)'
             match_indirizzo = re.search(pattern_indirizzo, sezione_fornitura, re.IGNORECASE)
 
             if match_indirizzo:

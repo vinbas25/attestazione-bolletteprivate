@@ -221,39 +221,16 @@ def estrai_pod_pdr(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
     return "N/D"
 
-
-
-def estrai_indirizzo_geal(testo: str) -> str:
-    # Pattern specifico per G.E.A.L. SpA
-    pattern_geal = r'Indirizzo di fornitura:\s*(?:VIA|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*(?:\s*-\s*\d{5}\s*[A-Z]{2})?'
-    match_geal = re.search(pattern_geal, testo, re.IGNORECASE)
-    if match_geal:
-        return match_geal.group(0).strip()
-    return "N/D"
-
-
 def estrai_indirizzo(testo: str) -> str:
     try:
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
         if match_nuove_acque:
             return match_nuove_acque.group(1).strip()
-
-
-        
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
         if match_gaia:
             return match_gaia.group(2).strip()
-
-
-        pattern_geal = r'Indirizzo di fornitura:\s*(?:VIA|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*(?:\s*-\s*\d{5}\s*[A-Z]{2})?'
-        match_geal = re.search(pattern_geal, testo, re.IGNORECASE)
-       if match_geal:
-               return match_geal.group(0).strip()
-
-
-        
         pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'
             r'(?:.*\n)*?'

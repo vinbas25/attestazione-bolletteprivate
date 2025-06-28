@@ -32,6 +32,9 @@ def normalizza_societa(nome_societa: str) -> str:
         r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
+        r'(?i)nuove(\s*s\.?p\.?a\.?)?$': 'NUOVE ACQUE S.P.A.',
+        r'(?i)nuove\s*acque(\s*s\.?p\.?a\.?)?$': 'NUOVE ACQUE S.P.A.',
+        r'(?i)nuove\s*spa$': 'NUOVE ACQUE S.P.A.',
     }
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):

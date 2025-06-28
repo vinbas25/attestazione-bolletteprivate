@@ -249,6 +249,13 @@ def estrai_indirizzo(testo: str) -> str:
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s+di\s+fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s+fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s+di\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
+            r'Indirizzo\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
+            r'Luogo\s+di\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
+            r'Fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
+            r'via\s+(?:[A-Za-z]+\s*)+(\d+)\s+(\d{5})\s+([A-Za-z]+)',
+            r'via\s+([A-Za-z\s]+?\d{1,5}\s*[A-Za-z]*)',
+            r'VIA\s+([A-Z\s]+?\d{1,5}\s*[A-Z]*)',
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)

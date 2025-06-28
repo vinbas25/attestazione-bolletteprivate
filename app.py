@@ -531,8 +531,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Pt(80)
-        section.right_margin = Pt(80)
+        section.left_margin = Pt(45)
+        section.right_margin = Pt(45)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
 

@@ -542,15 +542,14 @@ def mostra_grafico_consumi(dati_lista: List[Dict[str, str]]):
     except Exception as e:
         st.warning(f"Impossibile generare il grafico: {str(e)}")
 
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar. Basile Vincenzo"):
     try:
         doc = Document()
         section = doc.sections[0]
-
-        # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(80)  # Ridotto ulteriormente
-        section.right_margin = Pt(80)  # Ridotto ulteriormente
-
+        section.left_margin = Pt(80)
+        section.right_margin = Pt(80)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
 
@@ -558,79 +557,26 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         style.font.name = 'Arial'
         style.font.size = Pt(12)
 
-        data_fattura_str = dati[0].get('Data Fattura') if dati else None
-        if not data_fattura_str:
-            raise ValueError("Data fattura non presente nei dati")
-        try:
-            data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
-        except ValueError:
-            raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+        # Add header with logo and titles
+        header = doc.add_paragraph()
+        header.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        response = requests.get("https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png")
+        if response.status_code == 200:
+            logo_stream = io.BytesIO(response.content)
+            header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
 
-        if data_fattura.weekday() == 5:  # Sabato
-            data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:  # Domenica
-            data_attestazione = data_fattura - datetime.timedelta(days=2)
-        else:
-            data_attestazione = data_fattura
+        header.add_run("\n\nGuardia di Finanza\n").bold = True
+        header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n").bold = True
+        header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n").bold = True
 
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
-        try:
-            header = doc.add_paragraph()
-            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = io.BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-            header.add_run("\n\n")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
-        except Exception as e:
-            logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
-
+        # Add title
         title = doc.add_paragraph()
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_format = title.paragraph_format
-        title_format.space_before = Pt(0)
-        title_format.space_after = Pt(0)
-        title_format.border_top = Pt(1)
-        title_format.border_bottom = Pt(1)
-        title_format.border_left = Pt(1)
-        title_format.border_right = Pt(1)
-        title_format.border_top_color = RGBColor(0, 0, 0)
-        title_format.border_bottom_color = RGBColor(0, 0, 0)
-        title_format.border_left_color = RGBColor(0, 0, 0)
-        title_format.border_right_color = RGBColor(0, 0, 0)
-        title_format.space_inside = Pt(4)
+        title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         title_run = title.add_run("Dichiarazione di regolare fornitura")
         title_run.bold = True
         title_run.font.size = Pt(16)
-        title_run.font.name = 'Arial'
 
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
-        tipo_fornitura = determina_tipo_bolletta(societa, "")
-
+        # Add body text
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "
@@ -638,8 +584,10 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
         body = doc.add_paragraph(body_text)
-        body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        body.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+        body.paragraph_format.space_after = Pt(12)  # Adjust spacing after paragraph
 
+        # Add table
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
@@ -653,6 +601,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             row_cells[1].text = fattura.get('Data Fattura', 'N/D')
             row_cells[2].text = fattura.get('Totale (€)', 'N/D')
 
+        # Adjust table formatting
         for i, cell in enumerate(table.columns):
             max_length = max(len(str(row.cells[i].text)) for row in table.rows)
             for row in table.rows:
@@ -661,74 +610,67 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
-                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-        table.alignment = 1
-
-        # Ridurre lo spazio dopo la tabella
-        doc.add_paragraph().paragraph_format.space_after = Pt(0)
-
-        piva = dati[0].get('P.IVA')
-        if not piva:
-            piva = PIva_DATABASE.get(societa)
-            if not piva:
-                piva = PIva_DATABASE["ACQUE S.P.A."]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+        # Add footer text
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
+        tipo_fornitura = determina_tipo_bolletta(societa, "")
+        piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
-                "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
+                f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
                 "nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" "
                 "(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
                 "effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                 "L'energia elettrica oggetto della prefata fattura è stata regolarmente erogata "
-                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(piva)
+                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
             )
         else:
             if tipo_fornitura == "acqua":
                 footer_text = (
-                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
                     "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
             else:
                 footer_text = (
-                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
                     "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
 
         footer = doc.add_paragraph(footer_text)
-        footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        footer.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+        footer.paragraph_format.space_after = Pt(12)  # Adjust spacing after paragraph
 
-        data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
-        data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        # Add signature
+        data_attestazione = datetime.datetime.now().strftime("%d.%m.%Y")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione}\n")
+        data_para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
-        # Migliorare il gruppo firma incolonnandolo
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-        firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(12)
-        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        firma_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
 
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)
-        firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(12)
-        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        firma_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
 
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
+
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
-        nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
+        nome_file = f"attestazione_{nome_societa_pulito}_{datetime.datetime.now().strftime('%Y%m%d')}.docx"
         return output, nome_file
+
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 def main():
     st.title("📊 REPORT 2.0")

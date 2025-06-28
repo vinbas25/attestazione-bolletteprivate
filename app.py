@@ -568,12 +568,36 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         body.paragraph_format.space_after = Pt(12)
 
+        # Create and center the table
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+
+        for fattura in dati:
+            row_cells = table.add_row().cells
+            row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
+            row_cells[1].text = fattura.get('Data Fattura', 'N/D')
+            row_cells[2].text = fattura.get('Totale (€)', 'N/D')
+
+        # Center the table
+        table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        for i, cell in enumerate(table.columns):
+            max_length = max(len(str(row.cells[i].text)) for row in table.rows)
+            for row in table.rows:
+                row.cells[i].width = Pt(max_length * 10)
+
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
+        tipo_fornitura = determina_tipo_bolletta(societa, "")
+        piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
         # Extract invoice dates and find the oldest valid date
         invoice_dates = []
@@ -593,26 +617,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             data_attestazione = min(invoice_dates)
         else:
             data_attestazione = datetime.datetime.now()
-
-        for fattura in dati:
-            row_cells = table.add_row().cells
-            row_cells[0].text = fattura.get('Numero Fattura', 'N/D')
-            row_cells[1].text = fattura.get('Data Fattura', 'N/D')
-            row_cells[2].text = fattura.get('Totale (€)', 'N/D')
-
-        for i, cell in enumerate(table.columns):
-            max_length = max(len(str(row.cells[i].text)) for row in table.rows)
-            for row in table.rows:
-                row.cells[i].width = Pt(max_length * 10)
-
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
-        tipo_fornitura = determina_tipo_bolletta(societa, "")
-        piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
@@ -688,6 +692,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"
+
 
 
 

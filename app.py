@@ -226,23 +226,19 @@ import re
 
 def estrai_indirizzo(testo: str) -> str:
     try:
+        # Cerchiamo la sezione "DATI DELLA FORNITURA"
+        pattern_sezione = r'DATI DELLA FORNITURA(.*?)(?:\n\s*\n|$)'
+        match_sezione = re.search(pattern_sezione, testo, re.IGNORECASE | re.DOTALL)
 
-        # Pattern per cercare all'interno del riquadro "DATI DELLA FORNITURA" PER GEAL
-        pattern_dati_fornitura = r'DATI DELLA FORNITURA(.*?)(?=\n\n|\Z)'
-        match_dati_fornitura = re.search(pattern_dati_fornitura, testo, re.IGNORECASE | re.DOTALL)
-
-        if match_dati_fornitura:
-            sezione_fornitura = match_dati_fornitura.group(1)
-
-            # Pattern per cercare l'indirizzo all'interno della sezione trovata
-            pattern_indirizzo = r'(?:Indirizzo di fornitura:|VIA|Viale|Piazza|Corso)\s*:\s*([^\n|e-mail]+)'
-            match_indirizzo = re.search(pattern_indirizzo, sezione_fornitura, re.IGNORECASE)
+        if match_sezione:
+            # Cerchiamo l'indirizzo all'interno della sezione trovata
+            pattern_indirizzo = r'Indirizzo di fornitura:\s*([^\n|email]+)'
+            match_indirizzo = re.search(pattern_indirizzo, match_sezione.group(1), re.IGNORECASE)
 
             if match_indirizzo:
                 indirizzo = match_indirizzo.group(1).strip()
-                indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
                 return indirizzo
- 
+
         # Pattern per Nuove Acque
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)

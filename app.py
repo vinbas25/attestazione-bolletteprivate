@@ -27,15 +27,32 @@ def format_number(value: float) -> str:
 def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
+
+    # Prima controlliamo NUOVE ACQUE
+    nuove_acque_patterns = [
+        r'(?i)nuove\s*acque(\s*s\.?p\.?a\.?)?$',
+        r'(?i)nuove\s*acque\s*spa$',
+        r'(?i)nuove\s*acque\s*s\.p\.a\.$'
+    ]
+    for pattern in nuove_acque_patterns:
+        if re.search(pattern, nome_societa):
+            return "NUOVE ACQUE S.P.A."
+
+    # Poi controlliamo le altre società
     normalizzazione_map = {
         r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
+        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)acque(\s*s\.?p\.?a\.?)?$': 'ACQUE S.P.A.',  # Questo deve venire DOPO Nuove Acque
+        r'(?i)acque\s*spa$': 'ACQUE S.P.A.',
+        r'(?i)acque\s*s\.p\.a\.$': 'ACQUE S.P.A.'
     }
+
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):
             return replacement
+
     return nome_societa
 
 # Dizionario delle partite IVA delle società comuni
@@ -82,14 +99,14 @@ MESI_MAP = {
 
 # Elenco esteso di società conosciute con regex specifiche
 SOCIETA_CONOSCIUTE = {
+    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
+    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?(?!\s*NUOVE)",
     "AGSM AIM ENERGIA S.P.A.": r"AGSM\s*AIM\s*ENERGIA",
     "A2A ENERGIA S.P.A.": r"A2A\s*ENERGIA",
     "ACQUE VERONA S.P.A.": r"ACQUE\s*VERONA",
-    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?",
     "ACQUEDOTTO DEL FIORA S.P.A.": r"ACQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
     "ASA LIVORNO S.P.A.": r"ASA\s*LIVORNO",
     "ENEL ENERGIA S.P.A.": r"ENEL\s*ENERGIA",
-    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
     "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
     "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
     "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA",
@@ -118,7 +135,9 @@ def estrai_societa(testo: str) -> str:
             if re.search(pattern, testo, re.IGNORECASE):
                 return normalizza_societa(societa)
         patterns = [
-            r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|ACQUA|SPA))\b',
+            r'\b(NUOVE\s*ACQUE\s*S\.?P\.?A\.?)\b',
+            r'\b(ACQUE\s*S\.?P\.?A\.?)\b',
+            r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|SPA))\b',
             r'\b(SPA|S\.P\.A\.|SRL|S\.R\.L\.)\b'
         ]
         for pattern in patterns:
@@ -223,6 +242,11 @@ def estrai_pod_pdr(testo: str) -> str:
 
 def estrai_indirizzo(testo: str) -> str:
     try:
+        pattern_indirizzo = r'Indirizzo di fornitura:\s*([^\n]+)'
+        match_indirizzo = re.search(pattern_indirizzo, testo, re.IGNORECASE)
+        if match_indirizzo:
+            indirizzo = match_indirizzo.group(1).strip()
+            return indirizzo
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
         if match_nuove_acque:
@@ -257,7 +281,7 @@ def estrai_indirizzo(testo: str) -> str:
                 return indirizzo
         return "N/D"
     except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
+        print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
 
 def estrai_numero_fattura(testo: str) -> str:
@@ -348,7 +372,7 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
             r'Consumo\s*\n\s*(\d+)\s*mc',
             r'Consumo\s+nel\s+periodo\s+di\s+\d+\s+giorni:\s*([\d\.,]+)\s*mc',
             r'Letture e Consumi.*?Contatore n\.\s*\d+.*?(\d+)\s*mc',
-            r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s*stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
             r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',
             r'totale\s+smc\s+fatturati\s*[:\-]?\s*([\d]{1,3}(?:[\.,][\d]{3})*(?:[\.,]\d+)?)',
             r'Totale\s+quantità\s*[:\-]?\s*([\d.]+,\d+)\s*Smc',
@@ -445,7 +469,6 @@ def crea_excel(dati_lista: List[Dict[str, str]]):
             "Totale (€)",
             "File",
             "Consumi"
-            
         ]
         df = pd.DataFrame([d for d in dati_lista if d is not None])
         if len(df) == 0:
@@ -510,11 +533,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-
-        # Ridurre ulteriormente i margini laterali
-        section.left_margin = Pt(80)  # Ridotto ulteriormente
-        section.right_margin = Pt(80)  # Ridotto ulteriormente
-
+        section.left_margin = Pt(80)
+        section.right_margin = Pt(80)
         section.top_margin = Pt(50)
         section.bottom_margin = Pt(50)
 
@@ -522,78 +542,22 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         style.font.name = 'Arial'
         style.font.size = Pt(12)
 
-        data_fattura_str = dati[0].get('Data Fattura') if dati else None
-        if not data_fattura_str:
-            raise ValueError("Data fattura non presente nei dati")
-        try:
-            data_fattura = datetime.datetime.strptime(data_fattura_str, "%d/%m/%Y")
-        except ValueError:
-            raise ValueError(f"Formato data fattura non valido: {data_fattura_str}. Atteso GG/MM/AAAA")
+        header = doc.add_paragraph()
+        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        response = requests.get("https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png")
+        if response.status_code == 200:
+            logo_stream = io.BytesIO(response.content)
+            header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
 
-        if data_fattura.weekday() == 5:  # Sabato
-            data_attestazione = data_fattura - datetime.timedelta(days=1)
-        elif data_fattura.weekday() == 6:  # Domenica
-            data_attestazione = data_fattura - datetime.timedelta(days=2)
-        else:
-            data_attestazione = data_fattura
-
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Emblem_of_Italy.svg/1200px-Emblem_of_Italy.svg.png"
-        try:
-            header = doc.add_paragraph()
-            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            response = requests.get(logo_url)
-            if response.status_code == 200:
-                logo_stream = io.BytesIO(response.content)
-                header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
-            header.add_run("\n\n")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
-        except Exception as e:
-            logger.error(f"Errore durante l'aggiunta del logo: {str(e)}")
-            header_run = header.add_run("Guardia di Finanza\n")
-            header_run.bold = True
-            header_run.font.size = Pt(20)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
-            header_run.bold = True
-            header_run.font.size = Pt(16)
-            header_run.font.name = 'Arial'
-            header_run = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
-            header_run.bold = True
-            header_run.font.size = Pt(14)
-            header_run.font.name = 'Arial'
+        header.add_run("\n\nGuardia di Finanza\n").bold = True
+        header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n").bold = True
+        header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n").bold = True
 
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_format = title.paragraph_format
-        title_format.space_before = Pt(0)
-        title_format.space_after = Pt(0)
-        title_format.border_top = Pt(1)
-        title_format.border_bottom = Pt(1)
-        title_format.border_left = Pt(1)
-        title_format.border_right = Pt(1)
-        title_format.border_top_color = RGBColor(0, 0, 0)
-        title_format.border_bottom_color = RGBColor(0, 0, 0)
-        title_format.border_left_color = RGBColor(0, 0, 0)
-        title_format.border_right_color = RGBColor(0, 0, 0)
-        title_format.space_inside = Pt(4)
         title_run = title.add_run("Dichiarazione di regolare fornitura")
         title_run.bold = True
         title_run.font.size = Pt(16)
-        title_run.font.name = 'Arial'
-
-        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
-        tipo_fornitura = determina_tipo_bolletta(societa, "")
 
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
@@ -601,8 +565,23 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             "aggiornata con circolare nr. 209867/310 del 06.07.2016.\n\n"
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
+
+        specific_addresses = ["XXXX", "YYYY"]
+        address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
+
+        if address_present:
+            additional_text = (
+                "Gli importi riconducibili ad utenze private di alloggi di servizio ospitati nelle caserme del "
+                "Corpo sono recuperati preventivamente mediante trattenuta mensile ai militari fruitori degli "
+                "alloggi stessi, secondo quanto comunicato con nota n.439796 datata 11.12.2024 "
+                "dell’Articolazione in intestazione, in ottemperanza a quanto disposto dal Comando Generale "
+                "– IV Reparto – con Circolare n. 190.000 del 13.06.2025.\n\n"
+            )
+            body_text += additional_text
+
         body = doc.add_paragraph(body_text)
         body.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        body.paragraph_format.space_after = Pt(12)
 
         table = doc.add_table(rows=1, cols=3)
         table.style = 'Table Grid'
@@ -627,69 +606,59 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        table.alignment = 1
-
-        # Ridurre lo spazio dopo la tabella
-        doc.add_paragraph().paragraph_format.space_after = Pt(0)
-
-        piva = dati[0].get('P.IVA')
-        if not piva:
-            piva = PIva_DATABASE.get(societa)
-            if not piva:
-                piva = PIva_DATABASE["ACQUE S.P.A."]
-                logger.warning(f"P.IVA non trovata per società: {societa}. Usato valore default ACQUE S.P.A.")
+        societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
+        tipo_fornitura = determina_tipo_bolletta(societa, "")
+        piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
-                "emessa dalla società A2A ENERGIA S.P.A. - P.I. {} - "
+                f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
                 "nell'ambito della convenzione CONSIP \"Fornitura Energia Elettrica 12 Mesi - Lotto 8 Toscana\" "
                 "(Codice Identificativo Gara: B349419163), si riferiscono effettivamente a consumi di energia elettrica "
                 "effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                 "L'energia elettrica oggetto della prefata fattura è stata regolarmente erogata "
-                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(piva)
+                "presso i contatori richiesti dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
             )
         else:
             if tipo_fornitura == "acqua":
                 footer_text = (
-                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
                     "consumi di acqua effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "L'acqua oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
             else:
                 footer_text = (
-                    "\nemesse dalla società {} -- P.I. {} -- si riferiscono effettivamente a "
+                    f"\nemesse dalla società {societa} -- P.I. {piva} -- si riferiscono effettivamente a "
                     "consumi di materia prima effettuati dai Comandi amministrati da questo Reparto per i fini istituzionali.\n\n"
                     "La materia prima oggetto delle prefate fatture è stata regolarmente erogata presso i contatori richiesti "
-                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n".format(societa, piva)
+                    "dall'Amministrazione, ubicati presso le caserme del Corpo dislocate nella Regione Toscana.\n"
                 )
 
         footer = doc.add_paragraph(footer_text)
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        footer.paragraph_format.space_after = Pt(12)
 
-        data_attestazione_str = data_attestazione.strftime("%d.%m.%Y")
-        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
+        data_attestazione = datetime.datetime.now().strftime("%d.%m.%Y")
+        data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-       if firma_selezionata == "Mar. Basile Vincenzo":
-            firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\nMar. Basile Vincenzo")
-            firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(11)
-            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        else:
-            firma_paragraph = doc.add_paragraph()
-            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\nCap. Carla Mottola")
-            firma_run.font.name = 'Arial'
-            firma_run.font.size = Pt(11)
-            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        firma_paragraph = doc.add_paragraph()
+        firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+        firma_paragraph = doc.add_paragraph()
+        firma_run = firma_paragraph.add_run(firma_selezionata)
+        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
+
         nome_societa_pulito = re.sub(r'[^a-zA-Z0-9]', '_', societa)
-        nome_file = f"attestazione_{nome_societa_pulito}_{data_attestazione.strftime('%Y%m%d')}.docx"
+        nome_file = f"attestazione_{nome_societa_pulito}_{datetime.datetime.now().strftime('%Y%m%d')}.docx"
         return output, nome_file
+
     except Exception as e:
         logger.error(f"Errore durante la creazione dell'attestazione: {str(e)}")
         return None, "attestazione.docx"

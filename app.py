@@ -564,7 +564,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             "Si dichiara che i costi riportati nelle seguenti fatture elettroniche:\n"
         )
 
-        specific_addresses = ["XXXX", "YYYY"]
+        specific_addresses = ["garibaldi", "YYYY"]
         address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
 
         if address_present:

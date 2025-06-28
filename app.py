@@ -721,7 +721,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         return None, "attestazione.docx"
 
 
-
 def main():
     st.title("📊 REPORT 2.0")
     st.markdown("**Carica una o più bollette PDF** per estrarre automaticamente i dati principali.")

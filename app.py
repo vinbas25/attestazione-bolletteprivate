@@ -564,13 +564,7 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         title_run = title.add_run("Dichiarazione di regolare fornitura")
         title_run.bold = True
         title_run.font.size = Pt(16)
-
-        title = doc.add_paragraph()
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_run = title.add_run("Dichiarazione di regolare fornitura")
-        title_run.bold = True
-        title_run.font.size = Pt(16)
-
+        
         body_text = (
             "Si attesta l'avvenuta attività di controllo tecnico-logistica come da circolare "
             "90000/310 edizione 2011 del Comando Generale G. di F. - I Reparto Ufficio Ordinamento - "

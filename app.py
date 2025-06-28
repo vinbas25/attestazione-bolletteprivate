@@ -590,18 +590,22 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         table.style = 'Table Grid'
         table.autofit = False
         
-        # Stile tabella
+        # Stile tabella - correzione qui
         table.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for cell in table.rows[0].cells:
-            cell.paragraphs[0].runs[0].bold = True
-            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            shading_elm = parse_xml(r'<w:shd {} w:fill="F2F2F2"/>'.format(nsdecls('w')))
-            cell._tc.get_or_add_tcPr().append(shading_elm)
-
+        
+        # Intestazioni tabella
         hdr_cells = table.rows[0].cells
         hdr_cells[0].text = 'N. Documento'
         hdr_cells[1].text = 'Data Fattura'
         hdr_cells[2].text = 'Totale (€)'
+        
+        # Formattazione intestazioni
+        for cell in table.rows[0].cells:
+            cell.paragraphs[0].runs[0].bold = True
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Aggiunta sfondo grigio - metodo corretto
+            shading_elm = parse_xml(f'<w:shd {nsdecls("w")} w:fill="F2F2F2"/>')
+            cell._tc.get_or_add_tcPr().append(shading_elm)
 
         for fattura in dati:
             row_cells = table.add_row().cells
@@ -621,12 +625,11 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             for idx, width in enumerate(widths):
                 row.cells[idx].width = width
 
-        # Contenuto variabile in base ai dati
+        # Resto del codice rimane invariato...
         societa = normalizza_societa(dati[0].get('Società', 'ACQUE S.P.A.')) if dati else 'ACQUE S.P.A.'
         tipo_fornitura = determina_tipo_bolletta(societa, "")
         piva = dati[0].get('P.IVA', PIva_DATABASE.get(societa, PIva_DATABASE["ACQUE S.P.A."]))
 
-        # Gestione date
         invoice_dates = []
         for fattura in dati:
             data_fattura_str = fattura.get('Data Fattura', None)
@@ -640,7 +643,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
 
         data_attestazione = min(invoice_dates) if invoice_dates else datetime.datetime.now()
 
-        # Testo a piè di pagina
         if societa == "A2A ENERGIA S.P.A.":
             footer_text = (
                 f"\nemessa dalla società A2A ENERGIA S.P.A. - P.I. {piva} - "
@@ -670,7 +672,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         footer.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         footer.paragraph_format.space_after = Pt(12)
 
-        # Sezione indirizzi specifici
         specific_addresses = ["VIA DELL'ANNONA", "YYYY"]
         address_present = any(address in dati[0].get('Indirizzo', '') for address in specific_addresses)
 
@@ -686,7 +687,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             additional_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             additional_paragraph.paragraph_format.space_after = Pt(12)
 
-        # Sezione firma
         if firma_selezionata == "Cap. Carla Mottola":
             doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
 
@@ -707,7 +707,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         firma_run.bold = True
         firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-        # Salvataggio documento
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)

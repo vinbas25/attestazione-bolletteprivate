@@ -256,6 +256,7 @@ def estrai_indirizzo(testo: str) -> str:
             r'via\s+(?:[A-Za-z]+\s*)+(\d+)\s+(\d{5})\s+([A-Za-z]+)',
             r'via\s+([A-Za-z\s]+?\d{1,5}\s*[A-Za-z]*)',
             r'VIA\s+([A-Z\s]+?\d{1,5}\s*[A-Z]*)',
+            r'Indirizzo di fornitura:\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)'
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)

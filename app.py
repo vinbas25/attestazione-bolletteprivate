@@ -227,18 +227,6 @@ def estrai_indirizzo(testo: str) -> str:
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
         if match_nuove_acque:
             return match_nuove_acque.group(1).strip()
-
-        pattern_geal_spa = [
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-        ]
-        match_nuove_acque = re.search(pattern_geal_SPA, testo, re.IGNORECASE)
-        if match_geal_spa:
-            return match_nuove_acque.group(1).strip()
-        
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
         if match_gaia:
@@ -301,8 +289,7 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             r'totale\s*(?:fattura|bolletta)\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'importo\s*totale\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'TOTALE\s+Scissione\s+dei\s+pagamenti\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
+            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)

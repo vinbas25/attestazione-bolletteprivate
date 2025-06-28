@@ -247,6 +247,8 @@ def estrai_indirizzo(testo: str) -> str:
             r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s+di\s+fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
+            r'Indirizzo\s+fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
@@ -289,7 +291,11 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             r'totale\s*(?:fattura|bolletta)\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'importo\s*totale\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
+            r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
+            r'TOTALE\s+DA\s+PAGARE\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
+            r'Importo\s+da\s+pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
+            r'TOTALE\s+IMPONIBILE\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
+            r'TOTALE\s+Scissione\s+dei\s+pagamenti\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
         for pattern in patterns:
             match = re.search(pattern, testo, re.IGNORECASE)
@@ -356,6 +362,13 @@ def estrai_consumi(testo: str, tipo_bolletta: str) -> str:
             r'(?:riepilogo\s*consumi[^\n]*\n.*\n.*?)([\d\.,]+)\s*(mc|m³|metri\s*cubi)',
             r'(?:prospetto\s*letture\s*e\s*consumi[^\n]*\n.*\n.*?\d+)\s+([\d\.,]+)\s*$',
             r'(?:dettaglio\s*consumi[^\n]*\n.*\n.*?\d+\s+)([\d\.,]+)\s*$',
+            r'Consumo\s+([\d\.]+)\s*mc',
+            r'Consumo\s+del\s+periodo:\s*([\d\.,]+)\s*mc',
+            r'Consumo\s+fatturato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s+stimato\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s+effettivo\s*[:\-]?\s*([\d\.,]+)\s*mc',
+            r'Consumo\s+([\d\.]+)\s*metri\s*cubi',
+            r'Consumo\s+([\d\.]+)\s*m³'
         ]
         for pattern in patterns:
             matches = re.finditer(pattern, testo, re.IGNORECASE | re.MULTILINE)

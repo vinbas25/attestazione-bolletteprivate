@@ -547,9 +547,23 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             logo_stream = io.BytesIO(response.content)
             header.add_run().add_picture(logo_stream, width=Pt(56.5), height=Pt(56.5))
 
-        header.add_run("\n\nGuardia di Finanza\n").bold = True
-        header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n").bold = True
-        header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n").bold = True
+        header_run1 = header.add_run("\n\nGuardia di Finanza\n")
+        header_run1.bold = True
+        header_run1.font.size = Pt(18)
+
+        header_run2 = header.add_run("REPARTO TECNICO LOGISTICO AMMINISTRATIVO TOSCANA\n")
+        header_run2.bold = True
+        header_run2.font.size = Pt(18)
+
+        header_run3 = header.add_run("Ufficio Logistico - Sezione Infrastrutture\n\n")
+        header_run3.bold = True
+        header_run3.font.size = Pt(16)
+
+        title = doc.add_paragraph()
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = title.add_run("Dichiarazione di regolare fornitura")
+        title_run.bold = True
+        title_run.font.size = Pt(16)
 
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER

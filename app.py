@@ -226,18 +226,13 @@ import re
 
 def estrai_indirizzo(testo: str) -> str:
     try:
-        # Cerchiamo la sezione "DATI DELLA FORNITURA"
-        pattern_sezione = r'DATI DELLA FORNITURA(.*?)(?:\n\s*\n|$)'
-        match_sezione = re.search(pattern_sezione, testo, re.IGNORECASE | re.DOTALL)
+        # Cerchiamo l'indirizzo che segue direttamente "Indirizzo di fornitura"
+        pattern_indirizzo = r'Indirizzo di fornitura:\s*([^\n]+)'
+        match_indirizzo = re.search(pattern_indirizzo, testo, re.IGNORECASE)
 
-        if match_sezione:
-            # Cerchiamo l'indirizzo all'interno della sezione trovata
-            pattern_indirizzo = r'Indirizzo di fornitura:\s*([^\n|email]+)'
-            match_indirizzo = re.search(pattern_indirizzo, match_sezione.group(1), re.IGNORECASE)
-
-            if match_indirizzo:
-                indirizzo = match_indirizzo.group(1).strip()
-                return indirizzo
+        if match_indirizzo:
+            indirizzo = match_indirizzo.group(1).strip()
+            return indirizzo
 
         # Pattern per Nuove Acque
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'

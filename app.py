@@ -18,7 +18,7 @@ st.set_page_config(layout="wide")
 # Funzione per formattare i numeri
 def format_number(value: float) -> str:
     """Format a number with dots as thousand separators and comma as decimal separator."""
-    parts = "{:,.2f}".format(value).split('.')
+    parts = f"{value:,.2f}".format(value).split('.')
     integer_part = parts[0].replace(',', '.')
     decimal_part = parts[1]
     return f"{integer_part},{decimal_part}"
@@ -28,7 +28,6 @@ def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
 
-    # Prima controlliamo NUOVE ACQUE
     nuove_acque_patterns = [
         r'(?i)nuove\s*acque(\s*s\.?p\.?a\.?)?$',
         r'(?i)nuove\s*acque\s*spa$',
@@ -38,13 +37,12 @@ def normalizza_societa(nome_societa: str) -> str:
         if re.search(pattern, nome_societa):
             return "NUOVE ACQUE S.P.A."
 
-    # Poi controlliamo le altre società
     normalizzazione_map = {
         r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)acque(\s*s\.?p\.?a\.?)?$': 'ACQUE S.P.A.',  # Questo deve venire DOPO Nuove Acque
+        r'(?i)acque(\s*s\.?p\.?a\.?)?$': 'ACQUE S.P.A.',
         r'(?i)acque\s*spa$': 'ACQUE S.P.A.',
         r'(?i)acque\s*s\.p\.a\.$': 'ACQUE S.P.A.'
     }
@@ -643,9 +641,17 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-        firma_paragraph = doc.add_paragraph()
-        firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        if firma_selezionata == "Cap. Carla Mottola":
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("IL CAPO SEZIONE INFRASTRUTTURE in s.v.")
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+            body.add_run("\nLa presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.\n")
+
+        else:
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         firma_paragraph = doc.add_paragraph()
         firma_run = firma_paragraph.add_run(firma_selezionata)

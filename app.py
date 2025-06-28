@@ -241,22 +241,13 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_fiora.group(1).strip()
             indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
             return indirizzo
-        patterns_generici = [
-            r'Indirizzo di fornitura:\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
-            r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Luogo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s+di\s+fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s+fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
-            r'Indirizzo\s+di\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
-            r'Indirizzo\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
-            r'Luogo\s+di\s+fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
-            r'Fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[^\n]+?\d{1,5}\s*[A-Za-z]*)',
-            r'via\s+(?:[A-Za-z]+\s*)+(\d+)\s+(\d{5})\s+([A-Za-z]+)',
-            r'via\s+([A-Za-z\s]+?\d{1,5}\s*[A-Za-z]*)',
-            r'VIA\s+([A-Z\s]+?\d{1,5}\s*[A-Z]*)',
+           patterns_generici = [
+    r'Indirizzo di fornitura:\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
+    r'Indirizzo di fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
+    r'Luogo di fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
+    r'Fornitura\s*[:]?\s*((?:Via|Viale|Piazza|Corso|V\.|C\.so|P\.za|Strada)\s+[A-Za-zÀ-Ùà-ù0-9\s]+?\d{1,5}\s*[A-Za-z]*)',
+    r'via\s+([A-Za-zÀ-Ùà-ù\s]+?\d{1,5}\s*[A-Za-z]*)',
+    r'VIA\s+([A-Za-zÀ-Ùà-ù\s]+?\d{1,5}\s*[A-Za-z]*)'
         ]
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)

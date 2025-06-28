@@ -221,16 +221,29 @@ def estrai_pod_pdr(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
     return "N/D"
 
+import re
+
 def estrai_indirizzo(testo: str) -> str:
     try:
+        # Pattern per G.E.A.L. S.P.A.
+        pattern_geal = r'Indirizzo di fornitura:\s*([^\n]+)\s*\d{5}\s*[A-Z]{2}'
+        match_geal = re.search(pattern_geal, testo, re.IGNORECASE)
+        if match_geal:
+            return match_geal.group(1).strip()
+
+        # Pattern per Nuove Acque
         pattern_nuove_acque = r'Indirizzo\s+fornitura\s+([^\n]+)\s*-\s*\d{5}\s+[A-Z]{2}'
         match_nuove_acque = re.search(pattern_nuove_acque, testo, re.IGNORECASE)
         if match_nuove_acque:
             return match_nuove_acque.group(1).strip()
+
+        # Pattern per Gaia
         pattern_gaia = r'INTESTAZIONE\s*([^\n]+)\s*([^\n]+)\s*(\d{5}\s+[A-Z]{2})'
         match_gaia = re.search(pattern_gaia, testo, re.IGNORECASE | re.DOTALL)
         if match_gaia:
             return match_gaia.group(2).strip()
+
+        # Pattern per Fiora
         pattern_fiora = (
             r'(?:DATI FORNITURA|Indirizzo[^\n]*)\s*'
             r'(?:.*\n)*?'
@@ -241,6 +254,8 @@ def estrai_indirizzo(testo: str) -> str:
             indirizzo = match_fiora.group(1).strip()
             indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
             return indirizzo
+
+        # Pattern generici
         patterns_generici = [
             r'Indirizzo\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Servizio\s*erogato\s*in\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
@@ -248,6 +263,7 @@ def estrai_indirizzo(testo: str) -> str:
             r'Indirizzo\s*di\s*fornitura\s*[:\-]?\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
             r'Indirizzo\s*fornitura\s*((?:Via|Viale|Piazza|Corso|C\.so|C\.|V\.le|Str\.|C.so|V\.|P\.za).+?\d{1,5}(?:\s*[A-Za-z]?)?)\b',
         ]
+
         for pattern in patterns_generici:
             match = re.search(pattern, testo, re.IGNORECASE | re.DOTALL)
             if match:
@@ -255,10 +271,12 @@ def estrai_indirizzo(testo: str) -> str:
                 indirizzo = re.sub(r'^\W+|\W+$', '', indirizzo)
                 indirizzo = re.sub(r'\s+', ' ', indirizzo)
                 return indirizzo
+
         return "N/D"
     except Exception as e:
-        logger.error(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
+        print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
+
 
 def estrai_numero_fattura(testo: str) -> str:
     try:

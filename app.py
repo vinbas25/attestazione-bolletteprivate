@@ -292,9 +292,6 @@ def estrai_totale_bolletta(testo: str) -> Tuple[str, str]:
             r'importo\s*totale\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'totale\s*dovuto\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'TOTALE\s+DA\s+PAGARE\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'Importo\s+da\s+pagare\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
-            r'TOTALE\s+IMPONIBILE\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)',
             r'TOTALE\s+Scissione\s+dei\s+pagamenti\s*[:\-]?\s*[€]?\s*([\d\.,]+)\s*([€]?)'
         ]
         for pattern in patterns:

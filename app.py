@@ -118,7 +118,9 @@ def estrai_societa(testo: str) -> str:
             if re.search(pattern, testo, re.IGNORECASE):
                 return normalizza_societa(societa)
         patterns = [
-            r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|ACQUA|SPA))\b',
+            r'\b(NUOVE\s*ACQUE\s*S\.?P\.?A\.?)\b',  # Cerchiamo prima "NUOVE ACQUE"
+            r'\b(ACQUE\s*S\.?P\.?A\.?)\b',  # Poi cerchiamo "ACQUE"
+            r'\b([A-Z]{2,}\s*(?:AIM|ENERGIA|GAS|SPA))\b',
             r'\b(SPA|S\.P\.A\.|SRL|S\.R\.L\.)\b'
         ]
         for pattern in patterns:

@@ -531,8 +531,8 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
     try:
         doc = Document()
         section = doc.sections[0]
-        section.left_margin = Cm(1.5)  # Standard ISO 2.5 cm
-        section.right_margin = Cm(1.5)
+        section.left_margin = Cm(2.0)  # Standard ISO 2.5 cm
+        section.right_margin = Cm(2.0)
         section.top_margin = Cm(2.5)
         section.bottom_margin = Cm(2.5)
 

@@ -671,18 +671,18 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
         data_para = doc.add_paragraph(f"\nFirenze, {data_attestazione_str}\n")
         data_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-        # Migliorare il gruppo firma incolonnandolo
-        firma_paragraph = doc.add_paragraph()
-        firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare")
-        firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(12)
-        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-        firma_paragraph = doc.add_paragraph()
-        firma_run = firma_paragraph.add_run(firma_selezionata)
-        firma_run.font.name = 'Arial'
-        firma_run.font.size = Pt(12)
-        firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+       if firma_selezionata == "Mar. Basile Vincenzo":
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("L'Addetto al Drappello Gestione Patrimonio Immobiliare\nMar. Basile Vincenzo")
+            firma_run.font.name = 'Arial'
+            firma_run.font.size = Pt(11)
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        else:
+            firma_paragraph = doc.add_paragraph()
+            firma_run = firma_paragraph.add_run("Il Capo Sezione Infrastruttures in S.V.\nCap. Carla Mottola")
+            firma_run.font.name = 'Arial'
+            firma_run.font.size = Pt(11)
+            firma_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         output = io.BytesIO()
         doc.save(output)

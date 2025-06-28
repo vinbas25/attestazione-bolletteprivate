@@ -27,15 +27,32 @@ def format_number(value: float) -> str:
 def normalizza_societa(nome_societa: str) -> str:
     if not nome_societa or nome_societa == "N/D":
         return nome_societa
+    
+    # Prima controlliamo NUOVE ACQUE
+    nuove_acque_patterns = [
+        r'(?i)nuove\s*acque(\s*s\.?p\.?a\.?)?$',
+        r'(?i)nuove\s*acque\s*spa$',
+        r'(?i)nuove\s*acque\s*s\.p\.a\.$'
+    ]
+    for pattern in nuove_acque_patterns:
+        if re.search(pattern, nome_societa):
+            return "NUOVE ACQUE S.P.A."
+    
+    # Poi controlliamo le altre società
     normalizzazione_map = {
         r'(?i)fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)acquedotto\s*del\s*fiora(\s*s\.?p\.?a\.?)?$': 'ACQUEDOTTO DEL FIORA S.P.A.',
         r'(?i)fiora\s*spa$': 'ACQUEDOTTO DEL FIORA S.P.A.',
-        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.'
-}
+        r'(?i)fiora\s*s\.p\.a\.$': 'ACQUEDOTTO DEL FIORA S.P.A.',
+        r'(?i)acque(\s*s\.?p\.?a\.?)?$': 'ACQUE S.P.A.',  # Questo deve venire DOPO Nuove Acque
+        r'(?i)acque\s*spa$': 'ACQUE S.P.A.',
+        r'(?i)acque\s*s\.p\.a\.$': 'ACQUE S.P.A.'
+    }
+    
     for pattern, replacement in normalizzazione_map.items():
         if re.search(pattern, nome_societa):
             return replacement
+    
     return nome_societa
 
 # Dizionario delle partite IVA delle società comuni
@@ -71,7 +88,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Configurazione del logging
-logging.basicConfig(level=logging.INFO)
+logging.basic_config(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Mappa mesi in italiano
@@ -82,14 +99,14 @@ MESI_MAP = {
 
 # Elenco esteso di società conosciute con regex specifiche
 SOCIETA_CONOSCIUTE = {
+    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
+    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?(?!\s*NUOVE)",
     "AGSM AIM ENERGIA S.P.A.": r"AGSM\s*AIM\s*ENERGIA",
     "A2A ENERGIA S.P.A.": r"A2A\s*ENERGIA",
     "ACQUE VERONA S.P.A.": r"ACQUE\s*VERONA",
-    "ACQUE S.P.A.": r"ACQUE\s*S\.?P\.?A\.?",
     "ACQUEDOTTO DEL FIORA S.P.A.": r"ACQUEDOTTO\s*DEL\s*FIORA|FIORA\s*S\.?P\.?A\.?",
     "ASA LIVORNO S.P.A.": r"ASA\s*LIVORNO",
     "ENEL ENERGIA S.P.A.": r"ENEL\s*ENERGIA",
-    "NUOVE ACQUE S.P.A.": r"NUOVE\s*ACQUE",
     "GAIA S.P.A.": r"GAIA\s*S\.?P\.?A\.?",
     "PUBLIACQUA S.P.A.": r"PUBLIACQUA",
     "EDISON ENERGIA S.P.A.": r"EDISON\s*ENERGIA",
@@ -223,9 +240,6 @@ def estrai_pod_pdr(testo: str) -> str:
         logger.error(f"Errore durante l'estrazione del POD/PDR: {str(e)}")
     return "N/D"
 
-import re
-
-
 def estrai_indirizzo(testo: str) -> str:
     try:
         # Cerchiamo l'indirizzo che segue direttamente "Indirizzo di fornitura"
@@ -281,7 +295,6 @@ def estrai_indirizzo(testo: str) -> str:
     except Exception as e:
         print(f"Errore durante l'estrazione dell'indirizzo: {str(e)}")
         return "N/D"
-
 
 def estrai_numero_fattura(testo: str) -> str:
     try:

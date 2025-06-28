@@ -682,7 +682,6 @@ def crea_attestazione(dati: List[Dict[str, str]], firma_selezionata: str = "Mar.
             additional_paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             additional_paragraph.paragraph_format.space_after = Pt(12)
 
-        data_attestazione = datetime.datetime.now().strftime("%d.%m.%Y")
 
         if firma_selezionata == "Cap. Carla Mottola":
             doc.add_paragraph("La presente dichiarazione viene redatta dallo scrivente in sostituzione del DEC designato.")
